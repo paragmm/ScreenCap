@@ -7,17 +7,21 @@ let startX, startY;
 let currentColor = '#6366f1';
 let shapes = [];
 let selectedShape = null;
+let cropData = null;
+let isResizing = false;
+let activeHandle = null;
 let dragStartX, dragStartY;
+const RESIZE_HANDLE_SIZE = 8;
 
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
     if (result.capturedImage) {
         img.src = result.capturedImage;
+        cropData = result.cropData;
         img.onload = () => {
-            if (result.cropData) {
-                const crop = result.cropData;
-                canvas.width = crop.w;
-                canvas.height = crop.h;
+            if (cropData) {
+                canvas.width = cropData.w;
+                canvas.height = cropData.h;
             } else {
                 canvas.width = img.width;
                 canvas.height = img.height;
@@ -31,21 +35,18 @@ function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw background image
-    chrome.storage.local.get(['cropData'], (result) => {
-        if (result.cropData) {
-            const crop = result.cropData;
-            ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-        } else {
-            ctx.drawImage(img, 0, 0);
-        }
+    if (cropData) {
+        ctx.drawImage(img, cropData.x, cropData.y, cropData.w, cropData.h, 0, 0, cropData.w, cropData.h);
+    } else {
+        ctx.drawImage(img, 0, 0);
+    }
 
-        // Draw all shapes
-        shapes.forEach(shape => {
-            drawShape(shape);
-            if (shape === selectedShape) {
-                drawSelectionHighlight(shape);
-            }
-        });
+    // Draw all shapes
+    shapes.forEach(shape => {
+        drawShape(shape);
+        if (shape === selectedShape) {
+            drawSelectionHighlight(shape);
+        }
     });
 }
 
@@ -110,12 +111,55 @@ function drawArrow(x1, y1, x2, y2, context) {
 
 function drawSelectionHighlight(shape) {
     ctx.strokeStyle = '#6366f1';
+    ctx.fillStyle = '#ffffff';
     ctx.setLineDash([5, 5]);
     ctx.lineWidth = 1;
 
     let bounds = getShapeBounds(shape);
     ctx.strokeRect(bounds.x - 5, bounds.y - 5, bounds.w + 10, bounds.h + 10);
     ctx.setLineDash([]);
+
+    // Draw handles
+    const handles = getResizeHandles(bounds);
+    Object.values(handles).forEach(h => {
+        ctx.fillRect(h.x - RESIZE_HANDLE_SIZE / 2, h.y - RESIZE_HANDLE_SIZE / 2, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+        ctx.strokeRect(h.x - RESIZE_HANDLE_SIZE / 2, h.y - RESIZE_HANDLE_SIZE / 2, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
+    });
+}
+
+function getResizeHandles(bounds) {
+    const { x, y, w, h } = bounds;
+    const padding = 5;
+    const left = x - padding;
+    const right = x + w + padding;
+    const top = y - padding;
+    const bottom = y + h + padding;
+    const midX = x + w / 2;
+    const midY = y + h / 2;
+
+    return {
+        nw: { x: left, y: top, cursor: 'nwse-resize' },
+        n: { x: midX, y: top, cursor: 'ns-resize' },
+        ne: { x: right, y: top, cursor: 'nesw-resize' },
+        e: { x: right, y: midY, cursor: 'ew-resize' },
+        se: { x: right, y: bottom, cursor: 'nwse-resize' },
+        s: { x: midX, y: bottom, cursor: 'ns-resize' },
+        sw: { x: left, y: bottom, cursor: 'nesw-resize' },
+        w: { x: left, y: midY, cursor: 'ew-resize' }
+    };
+}
+
+function getHandleAtPoint(x, y, shape) {
+    if (!shape) return null;
+    const bounds = getShapeBounds(shape);
+    const handles = getResizeHandles(bounds);
+    for (const [type, handle] of Object.entries(handles)) {
+        if (Math.abs(x - handle.x) <= RESIZE_HANDLE_SIZE / 2 + 2 &&
+            Math.abs(y - handle.y) <= RESIZE_HANDLE_SIZE / 2 + 2) {
+            return type;
+        }
+    }
+    return null;
 }
 
 function getShapeBounds(shape) {
@@ -129,7 +173,12 @@ function getShapeBounds(shape) {
                 h: Math.abs(shape.y1 - shape.y2)
             };
         case 'rect':
-            return { x: shape.x, y: shape.y, w: Math.abs(shape.w), h: Math.abs(shape.h) };
+            return {
+                x: Math.min(shape.x, shape.x + shape.w),
+                y: Math.min(shape.y, shape.y + shape.h),
+                w: Math.abs(shape.w),
+                h: Math.abs(shape.h)
+            };
         case 'circle':
             return { x: shape.x - shape.r, y: shape.y - shape.r, w: shape.r * 2, h: shape.r * 2 };
         case 'oval':
@@ -169,6 +218,7 @@ function isPointInShape(x, y, shape) {
 // Tool Selection
 document.querySelectorAll('.tool-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+        if (btn.id === 'tool-clear') return;
         const active = document.querySelector('.tool-btn.active');
         if (active) active.classList.remove('active');
         btn.classList.add('active');
@@ -181,6 +231,14 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
     });
+});
+
+document.getElementById('tool-clear').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear all shapes?')) {
+        shapes = [];
+        selectedShape = null;
+        redraw();
+    }
 });
 
 document.getElementById('color-picker').addEventListener('input', (e) => {
@@ -198,6 +256,16 @@ canvas.addEventListener('mousedown', (e) => {
     const mouseY = e.clientY - rect.top;
 
     if (currentTool === 'select' || currentTool === 'eraser') {
+        const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
+        if (currentTool === 'select' && handle) {
+            isResizing = true;
+            isDrawing = true; // Added this to trigger mousemove logic
+            activeHandle = handle;
+            dragStartX = mouseX;
+            dragStartY = mouseY;
+            return;
+        }
+
         const foundIndex = shapes.slice().reverse().findIndex(s => isPointInShape(mouseX, mouseY, s));
         if (foundIndex !== -1) {
             const actualIndex = shapes.length - 1 - foundIndex;
@@ -289,11 +357,27 @@ canvas.addEventListener('mousemove', (e) => {
     const currentY = e.clientY - rect.top;
 
     if (currentTool === 'select' || currentTool === 'eraser') {
-        const isOverShape = shapes.some(s => isPointInShape(currentX, currentY, s));
-        canvas.classList.toggle('grabbing', isOverShape);
-        canvas.classList.toggle('eraser-cursor', currentTool === 'eraser');
+        const handle = getHandleAtPoint(currentX, currentY, selectedShape);
+        if (currentTool === 'select' && handle) {
+            const bounds = getShapeBounds(selectedShape);
+            const handles = getResizeHandles(bounds);
+            canvas.style.cursor = handles[handle].cursor;
+        } else {
+            const isOverShape = shapes.some(s => isPointInShape(currentX, currentY, s));
+            canvas.style.cursor = isOverShape ? (currentTool === 'eraser' ? 'crosshair' : 'grab') : 'default';
+        }
 
-        if (currentTool === 'select' && selectedShape && isDrawing) {
+        if (currentTool === 'select' && isResizing && selectedShape) {
+            const dx = currentX - dragStartX;
+            const dy = currentY - dragStartY;
+            resizeShape(selectedShape, activeHandle, dx, dy, currentX, currentY);
+            dragStartX = currentX;
+            dragStartY = currentY;
+            redraw();
+            return;
+        }
+
+        if (currentTool === 'select' && selectedShape && isDrawing && !isResizing) {
             const dx = currentX - dragStartX;
             const dy = currentY - dragStartY;
             moveShape(selectedShape, dx, dy);
@@ -302,6 +386,7 @@ canvas.addEventListener('mousemove', (e) => {
             redraw();
             return;
         }
+        return;
     }
 
     if (currentTool === 'pen') {
@@ -339,6 +424,81 @@ function createShape(type, x1, y1, x2, y2) {
     return shape;
 }
 
+function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
+    const bounds = getShapeBounds(shape);
+
+    switch (shape.type) {
+        case 'rect': {
+            const isWNeg = shape.w < 0;
+            const isHNeg = shape.h < 0;
+
+            // Map n/s/w/e to actual properties based on whether they are flipped
+            if (handleType.includes('n')) {
+                if (!isHNeg) { shape.y += dy; shape.h -= dy; }
+                else { shape.h += dy; }
+            }
+            if (handleType.includes('s')) {
+                if (!isHNeg) { shape.h += dy; }
+                else { shape.y += dy; shape.h -= dy; }
+            }
+            if (handleType.includes('w')) {
+                if (!isWNeg) { shape.x += dx; shape.w -= dx; }
+                else { shape.w += dx; }
+            }
+            if (handleType.includes('e')) {
+                if (!isWNeg) { shape.w += dx; }
+                else { shape.x += dx; shape.w -= dx; }
+            }
+            break;
+        }
+
+        case 'oval': {
+            // Oval is centered, so resizing one side affects both by half, 
+            // but we want the opposite side pinned, so we move center too.
+            if (handleType.includes('n')) { shape.y += dy / 2; shape.ry -= dy / 2; }
+            if (handleType.includes('s')) { shape.y += dy / 2; shape.ry += dy / 2; }
+            if (handleType.includes('w')) { shape.x += dx / 2; shape.rx -= dx / 2; }
+            if (handleType.includes('e')) { shape.x += dx / 2; shape.rx += dx / 2; }
+            shape.rx = Math.max(1, shape.rx);
+            shape.ry = Math.max(1, shape.ry);
+            break;
+        }
+
+        case 'circle':
+            // Convert circle to oval if stretching from side/corner
+            shape.type = 'oval';
+            shape.rx = shape.r;
+            shape.ry = shape.r;
+            delete shape.r;
+            // Fall through to oval logic
+            return resizeShape(shape, handleType, dx, dy, mouseX, mouseY);
+
+        case 'line':
+        case 'arrow':
+            // Logic to move endpoints based on handles
+            // This is slightly complex because dragging a handle should move the corresponding endpoint
+            // Let's find which endpoint is closer to the handle
+            const dist1 = Math.sqrt(Math.pow(mouseX - shape.x1, 2) + Math.pow(mouseY - shape.y1, 2));
+            const dist2 = Math.sqrt(Math.pow(mouseX - shape.x2, 2) + Math.pow(mouseY - shape.y2, 2));
+
+            // For bounding box handles, we might want to scale the whole line, 
+            // but usually users expect to move endpoints.
+            // If dragging corners, we move the nearest endpoint.
+            if (dist1 < dist2) {
+                if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
+                    if (handleType.includes('w') || handleType.includes('e')) shape.x1 += dx;
+                    if (handleType.includes('n') || handleType.includes('s')) shape.y1 += dy;
+                }
+            } else {
+                if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
+                    if (handleType.includes('w') || handleType.includes('e')) shape.x2 += dx;
+                    if (handleType.includes('n') || handleType.includes('s')) shape.y2 += dy;
+                }
+            }
+            break;
+    }
+}
+
 function moveShape(shape, dx, dy) {
     if (shape.type === 'pen') {
         shape.points.forEach(p => { p.x += dx; p.y += dy; });
@@ -361,6 +521,8 @@ canvas.addEventListener('mouseup', (e) => {
     }
 
     isDrawing = false;
+    isResizing = false;
+    activeHandle = null;
     redraw();
 });
 
