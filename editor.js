@@ -13,6 +13,8 @@ let isResizing = false;
 let activeHandle = null;
 let dragStartX, dragStartY;
 const RESIZE_HANDLE_SIZE = 8;
+let currentFontSize = 20;
+let currentFontFamily = 'Inter, sans-serif';
 
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
@@ -98,11 +100,12 @@ function drawShape(shape) {
             ctx.stroke();
             break;
         case 'text':
-            ctx.font = '20px Inter, sans-serif';
+            ctx.font = `${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
             ctx.textBaseline = 'top';
             const lines = shape.text.split('\n');
+            const lineHeight = (shape.fontSize || 20) * 1.2;
             lines.forEach((line, index) => {
-                ctx.fillText(line, shape.x, shape.y + (index * 24));
+                ctx.fillText(line, shape.x, shape.y + (index * lineHeight));
             });
             break;
     }
@@ -233,14 +236,17 @@ function getShapeBounds(shape) {
                 h: Math.max(...ys) - minY
             };
         case 'text':
-            ctx.font = '20px Inter, sans-serif';
+            const fontSize = shape.fontSize || 20;
+            const fontFamily = shape.fontFamily || 'Inter, sans-serif';
+            ctx.font = `${fontSize}px ${fontFamily}`;
             const lines = shape.text.split('\n');
             const widths = lines.map(line => ctx.measureText(line).width);
+            const lineHeight = fontSize * 1.2;
             return {
                 x: shape.x,
                 y: shape.y,
                 w: Math.max(...widths),
-                h: lines.length * 24
+                h: lines.length * lineHeight
             };
     }
     return { x: 0, y: 0, w: 0, h: 0 };
@@ -279,7 +285,18 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
             radiusControls.style.display = 'none';
         }
 
+        const fontControls = document.getElementById('font-controls');
+        const fontSeparator = document.querySelector('.font-separator');
+        if (currentTool === 'text') {
+            fontControls.style.display = 'flex';
+            fontSeparator.style.display = 'block';
+        } else {
+            fontControls.style.display = 'none';
+            fontSeparator.style.display = 'none';
+        }
+
         updateThicknessInputFromShape(null);
+        updateFontInputsFromShape(null);
     });
 });
 
@@ -308,6 +325,19 @@ function updateThicknessInputFromShape(shape) {
         thicknessInput.value = shape.thickness;
     } else {
         thicknessInput.value = currentThickness;
+    }
+}
+
+function updateFontInputsFromShape(shape) {
+    const familySelect = document.getElementById('font-family');
+    const sizeInput = document.getElementById('font-size');
+
+    if (shape && shape.type === 'text') {
+        familySelect.value = shape.fontFamily || 'Inter, sans-serif';
+        sizeInput.value = shape.fontSize || 20;
+    } else {
+        familySelect.value = currentFontFamily;
+        sizeInput.value = currentFontSize;
     }
 }
 
@@ -344,6 +374,24 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
     currentColor = e.target.value;
     if (selectedShape) {
         selectedShape.color = currentColor;
+        redraw();
+    }
+});
+
+document.getElementById('font-family').addEventListener('change', (e) => {
+    const val = e.target.value;
+    currentFontFamily = val;
+    if (selectedShape && selectedShape.type === 'text') {
+        selectedShape.fontFamily = val;
+        redraw();
+    }
+});
+
+document.getElementById('font-size').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value) || 12;
+    currentFontSize = val;
+    if (selectedShape && selectedShape.type === 'text') {
+        selectedShape.fontSize = val;
         redraw();
     }
 });
@@ -393,6 +441,19 @@ canvas.addEventListener('mousedown', (e) => {
         }
 
         updateThicknessInputFromShape(selectedShape);
+        updateFontInputsFromShape(selectedShape);
+
+        // Show font controls if a text shape is selected
+        const fontControls = document.getElementById('font-controls');
+        const fontSeparator = document.querySelector('.font-separator');
+        if (selectedShape && selectedShape.type === 'text') {
+            fontControls.style.display = 'flex';
+            fontSeparator.style.display = 'block';
+        } else if (currentTool !== 'text') {
+            fontControls.style.display = 'none';
+            fontSeparator.style.display = 'none';
+        }
+
         return;
     }
 
@@ -409,9 +470,9 @@ canvas.addEventListener('mousedown', (e) => {
         input.style.left = `${e.clientX}px`;
         input.style.top = `${e.clientY}px`;
         input.style.color = currentColor;
-        input.style.fontSize = '20px';
-        input.style.fontFamily = 'Inter, sans-serif';
-        input.style.lineHeight = '24px';
+        input.style.fontSize = `${currentFontSize}px`;
+        input.style.fontFamily = currentFontFamily;
+        input.style.lineHeight = `${currentFontSize * 1.2}px`;
         document.body.appendChild(input);
 
         setTimeout(() => input.focus(), 0);
@@ -424,7 +485,9 @@ canvas.addEventListener('mousedown', (e) => {
                     x: mouseX + 5, // Account for padding (4px) + border (1px)
                     y: mouseY + 5,
                     text: text,
-                    color: currentColor
+                    color: currentColor,
+                    fontSize: currentFontSize,
+                    fontFamily: currentFontFamily
                 });
                 redraw();
             }

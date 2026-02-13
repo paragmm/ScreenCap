@@ -40,6 +40,20 @@
                     <input type="number" id="line-thickness" title="Line Thickness" min="1" max="50" value="3">
                 </div>
             </div>
+            <div class="separator font-separator" style="display: none;"></div>
+            <div class="font-controls" id="font-controls" style="display: none;">
+                <div class="font-input-group">
+                    <label>Font:</label>
+                    <select id="font-family" title="Font Family">
+                        <option value="Inter, sans-serif">Inter</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Courier New, monospace">Monospace</option>
+                        <option value="'Brush Script MT', cursive">Cursive</option>
+                    </select>
+                    <input type="number" id="font-size" title="Font Size" min="12" max="100" value="20">
+                </div>
+            </div>
             <div class="separator"></div>
             <button class="action-btn save" id="save-btn">Save Image</button>
             <button class="action-btn discard" id="discard-btn">Discard</button>
