@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,34 +10,38 @@
       --primary: #6366f1;
       --primary-hover: #4f46e5;
       --bg: #ffffff;
-      --text: #1f2937;
-      --text-muted: #6b7280;
-      --border: #e5e7eb;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #f1f5f9;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     }
 
     body {
-      width: 300px;
+      width: 320px;
       margin: 0;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
+      background-color: #f8fafc;
       color: var(--text);
     }
 
     .header {
-      padding: 16px;
+      padding: 20px;
+      background: white;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
     }
 
     .header h1 {
       margin: 0;
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 800;
       background: linear-gradient(135deg, #6366f1, #a855f7);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
+      letter-spacing: -0.025em;
     }
 
     .content {
@@ -49,85 +54,133 @@
     .btn {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid transparent;
+      border-radius: 12px;
       background: white;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       text-align: left;
-      font-weight: 500;
-      color: var(--text);
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
     }
 
     .btn:hover {
       border-color: var(--primary);
-      background-color: #f8fafc;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .btn .icon {
-      font-size: 20px;
-      width: 24px;
-      text-align: center;
+      width: 40px;
+      height: 40px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      transition: all 0.2s;
+    }
+
+    .btn:hover .icon {
+      background: var(--primary);
+      color: white;
     }
 
     .btn .info {
       display: flex;
       flex-direction: column;
+      gap: 2px;
     }
 
     .btn .info span {
-      font-size: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
     }
 
     .btn .info small {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
+      line-height: 1.4;
     }
 
     .footer {
       padding: 12px;
-      background-color: #f9fafb;
-      border-top: 1px solid var(--border);
       text-align: center;
       font-size: 12px;
       color: var(--text-muted);
+      font-weight: 500;
     }
   </style>
 </head>
+
 <body>
   <div class="header">
     <h1>ScreenCap</h1>
   </div>
   <div class="content">
     <button class="btn" id="captureVisible">
-      <span class="icon">📸</span>
+      <div class="icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+      </div>
       <div class="info">
         <span>Visible Area</span>
-        <small>Capture what you see</small>
+        <small>Capture current viewport</small>
       </div>
     </button>
     <button class="btn" id="captureFullPage">
-      <span class="icon">📜</span>
+      <div class="icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+      </div>
       <div class="info">
         <span>Full Page</span>
-        <small>Capture scrollable page</small>
+        <small>Capture entire scrollable page</small>
       </div>
     </button>
     <button class="btn" id="captureSelective">
-      <span class="icon">✂️</span>
+      <div class="icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <path d="M8 21V20"></path>
+          <path d="M12 21V20"></path>
+          <path d="M16 21V20"></path>
+          <path d="M21 16H20"></path>
+          <path d="M21 12H20"></path>
+          <path d="M21 8H20"></path>
+          <path d="M21 4H20"></path>
+          <path d="M4 21H3V20"></path>
+          <path d="M4 3H3V4"></path>
+          <path d="M20 3H21V4"></path>
+        </svg>
+      </div>
       <div class="info">
         <span>Selective Area</span>
-        <small>Select a part of the screen</small>
+        <small>Select any part of the screen</small>
       </div>
     </button>
   </div>
   <div class="footer">
-    Select a capture mode to start
+    Professional Screenshot Suite
   </div>
   <script src="popup.js"></script>
 </body>
+
 </html>

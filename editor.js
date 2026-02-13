@@ -192,17 +192,25 @@ function updateCursor(mouseX, mouseY) {
             const bounds = getShapeBounds(selectedShape);
             const handles = getResizeHandles(bounds);
             canvas.style.cursor = handles[handle].cursor;
+            canvas.classList.remove('eraser-cursor');
             return;
         }
 
         const isOverShape = shapes.some(s => isPointInShape(mouseX, mouseY, s));
         if (isOverShape) {
-            canvas.style.cursor = currentTool === 'eraser' ? 'crosshair' : 'grab';
+            if (currentTool === 'eraser') {
+                canvas.classList.add('eraser-cursor');
+            } else {
+                canvas.style.cursor = 'grab';
+                canvas.classList.remove('eraser-cursor');
+            }
         } else {
-            canvas.style.cursor = ''; // Let CSS handles .selecting class
+            canvas.style.cursor = '';
+            canvas.classList.remove('eraser-cursor');
         }
     } else {
-        canvas.style.cursor = ''; // Let CSS handle crosshair
+        canvas.style.cursor = '';
+        canvas.classList.remove('eraser-cursor');
     }
 }
 
@@ -294,34 +302,20 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         if (existingInput) existingInput.remove();
 
         const radiusControls = document.getElementById('radius-controls');
-        if (currentTool === 'rect') {
-            radiusControls.style.display = 'flex';
-        } else {
-            radiusControls.style.display = 'none';
-        }
+        radiusControls.style.display = (currentTool === 'rect') ? 'flex' : 'none';
 
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
 
         const thicknessControls = document.getElementById('thickness-controls');
-        const thicknessSeparator = thicknessControls.previousElementSibling;
         const fontControls = document.getElementById('font-controls');
-        const fontSeparator = document.querySelector('.font-separator');
 
         if (currentTool === 'text') {
             thicknessControls.style.display = 'none';
-            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
-                thicknessSeparator.style.display = 'none';
-            }
             fontControls.style.display = 'flex';
-            fontSeparator.style.display = 'block';
         } else {
             thicknessControls.style.display = 'flex';
-            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
-                thicknessSeparator.style.display = 'block';
-            }
             fontControls.style.display = 'none';
-            fontSeparator.style.display = 'none';
         }
     });
 });
@@ -347,11 +341,10 @@ function updateRadiusInputsFromShape(shape) {
 
 function updateThicknessInputFromShape(shape) {
     const thicknessInput = document.getElementById('line-thickness');
-    if (shape && shape.thickness) {
-        thicknessInput.value = shape.thickness;
-    } else {
-        thicknessInput.value = currentThickness;
-    }
+    const val = (shape && shape.thickness) ? shape.thickness : currentThickness;
+    thicknessInput.value = val;
+    const valDisplay = document.getElementById('thickness-val');
+    if (valDisplay) valDisplay.innerText = `${val}px`;
 }
 
 function updateFontInputsFromShape(shape) {
@@ -439,6 +432,8 @@ document.getElementById('tool-clear').addEventListener('click', () => {
 document.getElementById('line-thickness').addEventListener('input', (e) => {
     const val = parseInt(e.target.value) || 1;
     currentThickness = val;
+    const valDisplay = document.getElementById('thickness-val');
+    if (valDisplay) valDisplay.innerText = `${val}px`;
     if (selectedShape) {
         selectedShape.thickness = val;
         redraw();
@@ -529,24 +524,14 @@ canvas.addEventListener('mousedown', (e) => {
         updateFontInputsFromShape(selectedShape);
 
         const thicknessControls = document.getElementById('thickness-controls');
-        const thicknessSeparator = thicknessControls.previousElementSibling;
         const fontControls = document.getElementById('font-controls');
-        const fontSeparator = document.querySelector('.font-separator');
 
         if (selectedShape && selectedShape.type === 'text') {
             thicknessControls.style.display = 'none';
-            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
-                thicknessSeparator.style.display = 'none';
-            }
             fontControls.style.display = 'flex';
-            fontSeparator.style.display = 'block';
         } else if (currentTool !== 'text') {
             thicknessControls.style.display = 'flex';
-            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
-                thicknessSeparator.style.display = 'block';
-            }
             fontControls.style.display = 'none';
-            fontSeparator.style.display = 'none';
         }
 
         return;
@@ -831,7 +816,7 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
             }
             break;
 
-        case 'text':
+        case 'text': {
             const isN = handleType.includes('n');
             const isS = handleType.includes('s');
             const isW = handleType.includes('w');
@@ -856,6 +841,37 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
                 updateFontInputsFromShape(shape);
             }
             break;
+        }
+
+        case 'pen': {
+            const oldBounds = getShapeBounds(shape);
+            const isW = handleType.includes('w');
+            const isE = handleType.includes('e');
+            const isN = handleType.includes('n');
+            const isS = handleType.includes('s');
+
+            let newW = oldBounds.w;
+            let newH = oldBounds.h;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            if (isW) { newW -= dx; offsetX = dx; }
+            if (isE) { newW += dx; }
+            if (isN) { newH -= dy; offsetY = dy; }
+            if (isS) { newH += dy; }
+
+            // Avoid division by zero and excessive scaling
+            if (oldBounds.w === 0) newW = 1;
+            if (oldBounds.h === 0) newH = 1;
+            const scaleX = newW / (oldBounds.w || 1);
+            const scaleY = newH / (oldBounds.h || 1);
+
+            shape.points = shape.points.map(p => ({
+                x: oldBounds.x + offsetX + (p.x - oldBounds.x) * scaleX,
+                y: oldBounds.y + offsetY + (p.y - oldBounds.y) * scaleY
+            }));
+            break;
+        }
     }
 }
 
