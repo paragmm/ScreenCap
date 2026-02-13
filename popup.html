@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScreenCap</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #ffffff;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+    }
+
+    body {
+      width: 300px;
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .btn:hover {
+      border-color: var(--primary);
+      background-color: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .btn .icon {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .btn .info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .btn .info span {
+      font-size: 14px;
+    }
+
+    .btn .info small {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .footer {
+      padding: 12px;
+      background-color: #f9fafb;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>ScreenCap</h1>
+  </div>
+  <div class="content">
+    <button class="btn" id="captureVisible">
+      <span class="icon">📸</span>
+      <div class="info">
+        <span>Visible Area</span>
+        <small>Capture what you see</small>
+      </div>
+    </button>
+    <button class="btn" id="captureFullPage">
+      <span class="icon">📜</span>
+      <div class="info">
+        <span>Full Page</span>
+        <small>Capture scrollable page</small>
+      </div>
+    </button>
+    <button class="btn" id="captureSelective">
+      <span class="icon">✂️</span>
+      <div class="info">
+        <span>Selective Area</span>
+        <small>Select a part of the screen</small>
+      </div>
+    </button>
+  </div>
+  <div class="footer">
+    Select a capture mode to start
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
