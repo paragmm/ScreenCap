@@ -186,3 +186,49 @@ body {
   border-color: var(--primary);
   background: white;
 }
+
+.font-controls {
+  display: flex;
+  align-items: center;
+}
+
+.font-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.font-input-group label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.font-input-group select,
+.font-input-group input {
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  background: white;
+}
+
+.font-input-group select {
+  width: 100px;
+}
+
+.font-input-group input {
+  width: 45px;
+  text-align: center;
+}
+
+.font-input-group select:focus,
+.font-input-group input:focus {
+  border-color: var(--primary);
+}

@@ -277,26 +277,30 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
 
-        const radiusControls = document.getElementById('radius-controls');
-        if (currentTool === 'rect') {
-            radiusControls.style.display = 'flex';
-            updateRadiusInputsFromShape(null); // Reset to defaults or tool values
-        } else {
-            radiusControls.style.display = 'none';
-        }
+        updateRadiusInputsFromShape(null);
+        updateThicknessInputFromShape(null);
+        updateFontInputsFromShape(null);
 
+        const thicknessControls = document.getElementById('thickness-controls');
+        const thicknessSeparator = thicknessControls.previousElementSibling;
         const fontControls = document.getElementById('font-controls');
         const fontSeparator = document.querySelector('.font-separator');
+
         if (currentTool === 'text') {
+            thicknessControls.style.display = 'none';
+            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
+                thicknessSeparator.style.display = 'none';
+            }
             fontControls.style.display = 'flex';
             fontSeparator.style.display = 'block';
         } else {
+            thicknessControls.style.display = 'flex';
+            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
+                thicknessSeparator.style.display = 'block';
+            }
             fontControls.style.display = 'none';
             fontSeparator.style.display = 'none';
         }
-
-        updateThicknessInputFromShape(null);
-        updateFontInputsFromShape(null);
     });
 });
 
@@ -443,13 +447,23 @@ canvas.addEventListener('mousedown', (e) => {
         updateThicknessInputFromShape(selectedShape);
         updateFontInputsFromShape(selectedShape);
 
-        // Show font controls if a text shape is selected
+        const thicknessControls = document.getElementById('thickness-controls');
+        const thicknessSeparator = thicknessControls.previousElementSibling;
         const fontControls = document.getElementById('font-controls');
         const fontSeparator = document.querySelector('.font-separator');
+
         if (selectedShape && selectedShape.type === 'text') {
+            thicknessControls.style.display = 'none';
+            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
+                thicknessSeparator.style.display = 'none';
+            }
             fontControls.style.display = 'flex';
             fontSeparator.style.display = 'block';
         } else if (currentTool !== 'text') {
+            thicknessControls.style.display = 'flex';
+            if (thicknessSeparator && thicknessSeparator.classList.contains('separator')) {
+                thicknessSeparator.style.display = 'block';
+            }
             fontControls.style.display = 'none';
             fontSeparator.style.display = 'none';
         }
@@ -648,15 +662,6 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
 
         case 'line':
         case 'arrow':
-            // Logic to move endpoints based on handles
-            // This is slightly complex because dragging a handle should move the corresponding endpoint
-            // Let's find which endpoint is closer to the handle
-            const dist1 = Math.sqrt(Math.pow(mouseX - shape.x1, 2) + Math.pow(mouseY - shape.y1, 2));
-            const dist2 = Math.sqrt(Math.pow(mouseX - shape.x2, 2) + Math.pow(mouseY - shape.y2, 2));
-
-            // For bounding box handles, we might want to scale the whole line, 
-            // but usually users expect to move endpoints.
-            // If dragging corners, we move the nearest endpoint.
             if (dist1 < dist2) {
                 if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
                     if (handleType.includes('w') || handleType.includes('e')) shape.x1 += dx;
@@ -667,6 +672,32 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
                     if (handleType.includes('w') || handleType.includes('e')) shape.x2 += dx;
                     if (handleType.includes('n') || handleType.includes('s')) shape.y2 += dy;
                 }
+            }
+            break;
+
+        case 'text':
+            const isN = handleType.includes('n');
+            const isS = handleType.includes('s');
+            const isW = handleType.includes('w');
+            const isE = handleType.includes('e');
+
+            let change = 0;
+            if (isN) change = -dy;
+            else if (isS) change = dy;
+            else if (isW) change = -dx;
+            else if (isE) change = dx;
+
+            if (change !== 0) {
+                const oldSize = shape.fontSize || 20;
+                let newSize = oldSize;
+                if (isN || isS) {
+                    newSize = oldSize + change;
+                } else {
+                    newSize = oldSize + (change * 0.5);
+                }
+
+                shape.fontSize = Math.max(8, Math.min(200, Math.round(newSize)));
+                updateFontInputsFromShape(shape);
             }
             break;
     }
