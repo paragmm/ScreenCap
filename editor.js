@@ -478,6 +478,62 @@ canvas.addEventListener('mousedown', (e) => {
     }
 
     if (currentTool === 'text') {
+        const foundIndex = shapes.slice().reverse().findIndex(s => s.type === 'text' && isPointInShape(mouseX, mouseY, s));
+        if (foundIndex !== -1) {
+            const actualIndex = shapes.length - 1 - foundIndex;
+            const shapeToEdit = shapes[actualIndex];
+
+            // Initiate editing for existing shape
+            const input = document.createElement('div');
+            input.className = 'text-input';
+            input.contentEditable = true;
+
+            // Get canvas offset to position input correctly in body
+            const canvasRect = canvas.getBoundingClientRect();
+            input.style.left = `${canvasRect.left + shapeToEdit.x - 5}px`;
+            input.style.top = `${canvasRect.top + shapeToEdit.y - 5}px`;
+
+            input.style.color = shapeToEdit.color;
+            input.style.fontSize = `${shapeToEdit.fontSize || 20}px`;
+            input.style.fontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
+            input.style.lineHeight = `${(shapeToEdit.fontSize || 20) * 1.2}px`;
+            input.innerText = shapeToEdit.text;
+
+            // Temporarily remove shape from array while editing
+            shapes.splice(actualIndex, 1);
+            redraw();
+
+            document.body.appendChild(input);
+            setTimeout(() => {
+                input.focus();
+                // Select all text
+                const range = document.createRange();
+                range.selectNodeContents(input);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }, 0);
+
+            const handleFinish = () => {
+                const text = input.innerText.trim();
+                if (text) {
+                    shapeToEdit.text = text;
+                    shapes.push(shapeToEdit);
+                    redraw();
+                }
+                input.remove();
+            };
+
+            input.addEventListener('blur', handleFinish);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    input.blur();
+                }
+            });
+            return;
+        }
+
         const input = document.createElement('div');
         input.className = 'text-input';
         input.contentEditable = true;
