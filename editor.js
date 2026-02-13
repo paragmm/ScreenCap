@@ -119,6 +119,20 @@ canvas.addEventListener('mousemove', (e) => {
         ctx.beginPath();
         ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
+    } else if (currentTool === 'arrow') {
+        restoreSnapshot();
+        const headlen = 15; // length of head in pixels
+        const dx = currentX - startX;
+        const dy = currentY - startY;
+        const angle = Math.atan2(dy, dx);
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(currentX, currentY);
+        ctx.lineTo(currentX - headlen * Math.cos(angle - Math.PI / 6), currentY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(currentX, currentY);
+        ctx.lineTo(currentX - headlen * Math.cos(angle + Math.PI / 6), currentY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.stroke();
     }
 });
 
