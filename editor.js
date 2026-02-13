@@ -55,7 +55,7 @@ canvas.addEventListener('mousedown', (e) => {
     startX = e.clientX - rect.left;
     startY = e.clientY - rect.top;
 
-    if (currentTool === 'pen') {
+    if (currentTool === 'pen' || currentTool === 'eraser') {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.strokeStyle = currentColor;
@@ -80,6 +80,21 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentTool === 'pen') {
         ctx.lineTo(currentX, currentY);
         ctx.stroke();
+    } else if (currentTool === 'eraser') {
+        const size = 20;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, size / 2, 0, Math.PI * 2);
+        ctx.clip();
+        chrome.storage.local.get(['cropData'], (result) => {
+            if (result.cropData) {
+                const crop = result.cropData;
+                ctx.drawImage(img, crop.x + (currentX - size / 2), crop.y + (currentY - size / 2), size, size, currentX - size / 2, currentY - size / 2, size, size);
+            } else {
+                ctx.drawImage(img, currentX - size / 2, currentY - size / 2, size, size, currentX - size / 2, currentY - size / 2, size, size);
+            }
+            ctx.restore();
+        });
     } else if (currentTool === 'line') {
         restoreSnapshot();
         ctx.beginPath();
