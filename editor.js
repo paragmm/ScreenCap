@@ -277,7 +277,13 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
 
-        updateRadiusInputsFromShape(null);
+        const radiusControls = document.getElementById('radius-controls');
+        if (currentTool === 'rect') {
+            radiusControls.style.display = 'flex';
+        } else {
+            radiusControls.style.display = 'none';
+        }
+
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
 
@@ -435,12 +441,13 @@ canvas.addEventListener('mousedown', (e) => {
         redraw();
         updateCursor(mouseX, mouseY);
 
-        // Show radius controls if a rectangle is selected
+        // Show radius controls if a rectangle is selected OR if Rectangle tool is active
         const radiusControls = document.getElementById('radius-controls');
-        if (selectedShape && selectedShape.type === 'rect') {
+        if ((selectedShape && selectedShape.type === 'rect') || currentTool === 'rect') {
             radiusControls.style.display = 'flex';
             updateRadiusInputsFromShape(selectedShape);
         } else {
+            radiusControls.style.display = 'none';
             updateRadiusInputsFromShape(null);
         }
 
