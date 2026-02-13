@@ -5,6 +5,8 @@ let currentTool = 'select';
 let isDrawing = false;
 let startX, startY;
 let currentColor = '#6366f1';
+let currentFillColor = '#6366f1';
+let isFillEnabled = false;
 let currentThickness = 3;
 let shapes = [];
 let selectedShape = null;
@@ -70,6 +72,22 @@ function drawShape(shape) {
             ctx.stroke();
             break;
         case 'rect':
+            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
+                ctx.fillStyle = shape.fillColor;
+                if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
+                    ctx.beginPath();
+                    ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
+                        shape.borderRadius.tl || 0,
+                        shape.borderRadius.tr || 0,
+                        shape.borderRadius.br || 0,
+                        shape.borderRadius.bl || 0
+                    ]);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
+                }
+            }
+
             if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
                 ctx.beginPath();
                 ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
@@ -85,6 +103,9 @@ function drawShape(shape) {
             break;
         case 'circle':
             ctx.arc(shape.x, shape.y, shape.r, 0, 2 * Math.PI);
+            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
+                ctx.fill();
+            }
             ctx.stroke();
             break;
         case 'oval':
@@ -128,16 +149,29 @@ function drawShape(shape) {
 }
 
 function drawArrow(x1, y1, x2, y2, context, thickness) {
-    const headlen = 10 + (thickness || 3) * 2;
+    const headlen = 10 + (thickness || 3) * 1.5;
     const dx = x2 - x1;
     const dy = y2 - y1;
+    const L = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx);
+
+    // Shorten the shaft so its rounded end doesn't blunt the sharp tip
+    const shaftEndX = L > headlen ? x2 - (headlen * 0.7) * Math.cos(angle) : x1;
+    const shaftEndY = L > headlen ? y2 - (headlen * 0.7) * Math.sin(angle) : y1;
+
+    // Draw the arrow shaft
+    context.beginPath();
     context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
-    context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
-    context.moveTo(x2, y2);
-    context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+    context.lineTo(shaftEndX, shaftEndY);
     context.stroke();
+
+    // Draw the arrow head (filled triangle)
+    context.beginPath();
+    context.moveTo(x2, y2);
+    context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 7), y2 - headlen * Math.sin(angle - Math.PI / 7));
+    context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 7), y2 - headlen * Math.sin(angle + Math.PI / 7));
+    context.closePath();
+    context.fill();
 }
 
 function drawSelectionHighlight(shape) {
@@ -307,8 +341,12 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
 
-        const thicknessControls = document.getElementById('thickness-controls');
-        const fontControls = document.getElementById('font-controls');
+        const fillControlGroup = document.getElementById('fill-control-group');
+        if (currentTool === 'rect' || currentTool === 'circle') {
+            fillControlGroup.style.display = 'flex';
+        } else {
+            fillControlGroup.style.display = 'none';
+        }
 
         if (currentTool === 'text') {
             thicknessControls.style.display = 'none';
@@ -363,6 +401,22 @@ function updateFontInputsFromShape(shape) {
         document.getElementById('btn-bold').classList.toggle('active', currentBold);
         document.getElementById('btn-italic').classList.toggle('active', currentItalic);
         document.getElementById('btn-underline').classList.toggle('active', currentUnderline);
+    }
+
+    // Sync color pickers and fill checkbox
+    if (shape) {
+        document.getElementById('color-picker').value = shape.color || currentColor;
+        if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
+            document.getElementById('fill-color-picker').value = shape.fillColor;
+            document.getElementById('fill-enabled').checked = true;
+        } else {
+            document.getElementById('fill-enabled').checked = false;
+            document.getElementById('fill-color-picker').value = currentFillColor;
+        }
+    } else {
+        document.getElementById('color-picker').value = currentColor;
+        document.getElementById('fill-enabled').checked = isFillEnabled;
+        document.getElementById('fill-color-picker').value = currentFillColor;
     }
 }
 
@@ -448,6 +502,22 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
     }
 });
 
+document.getElementById('fill-color-picker').addEventListener('input', (e) => {
+    currentFillColor = e.target.value;
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle') && document.getElementById('fill-enabled').checked) {
+        selectedShape.fillColor = currentFillColor;
+        redraw();
+    }
+});
+
+document.getElementById('fill-enabled').addEventListener('change', (e) => {
+    isFillEnabled = e.target.checked;
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+        selectedShape.fillColor = isFillEnabled ? currentFillColor : '#ffffff00';
+        redraw();
+    }
+});
+
 document.getElementById('font-family').addEventListener('change', (e) => {
     const val = e.target.value;
     currentFontFamily = val;
@@ -525,6 +595,16 @@ canvas.addEventListener('mousedown', (e) => {
 
         const thicknessControls = document.getElementById('thickness-controls');
         const fontControls = document.getElementById('font-controls');
+        const fillControlGroup = document.getElementById('fill-control-group');
+
+        // Update fill picker visibility based on selected shape type
+        if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+            fillControlGroup.style.display = 'flex';
+        } else if (!selectedShape && (currentTool === 'rect' || currentTool === 'circle')) {
+            fillControlGroup.style.display = 'flex';
+        } else {
+            fillControlGroup.style.display = 'none';
+        }
 
         if (selectedShape && selectedShape.type === 'text') {
             thicknessControls.style.display = 'none';
@@ -729,7 +809,13 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 function createShape(type, x1, y1, x2, y2) {
-    const shape = { type, color: currentColor, thickness: currentThickness };
+    const isFill = document.getElementById('fill-enabled').checked;
+    const shape = {
+        type,
+        color: currentColor,
+        fillColor: (isFill && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
+        thickness: currentThickness
+    };
     switch (type) {
         case 'line':
         case 'arrow':
