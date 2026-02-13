@@ -23,6 +23,12 @@ let currentBold = false;
 let currentItalic = false;
 let currentUnderline = false;
 
+// UI Control Elements
+const thicknessControls = document.getElementById('thickness-controls');
+const fontControls = document.getElementById('font-controls');
+const fillControlGroup = document.getElementById('fill-control-group');
+const radiusControls = document.getElementById('radius-controls');
+
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
     if (result.capturedImage) {
@@ -128,6 +134,7 @@ function drawShape(shape) {
             const fontWeight = shape.bold ? 'bold' : 'normal';
             const fontStyle = shape.italic ? 'italic' : 'normal';
             ctx.font = `${fontStyle} ${fontWeight} ${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
+            ctx.fillStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0); // Use shape.color for text
             ctx.textBaseline = 'top';
             const lines = shape.text.split('\n');
             const lineHeight = (shape.fontSize || 20) * 1.2;
@@ -139,6 +146,7 @@ function drawShape(shape) {
                 if (shape.underline) {
                     const metrics = ctx.measureText(line);
                     ctx.beginPath();
+                    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0); // Also ensure stroke color for underline
                     ctx.lineWidth = Math.max(1, (shape.fontSize || 20) / 15);
                     ctx.moveTo(lx, ly + (shape.fontSize || 20));
                     ctx.lineTo(lx + metrics.width, ly + (shape.fontSize || 20));
@@ -351,13 +359,11 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
 
-        const radiusControls = document.getElementById('radius-controls');
         radiusControls.style.display = (currentTool === 'rect') ? 'flex' : 'none';
 
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
 
-        const fillControlGroup = document.getElementById('fill-control-group');
         if (currentTool === 'rect' || currentTool === 'circle') {
             fillControlGroup.style.display = 'flex';
         } else {
@@ -632,7 +638,6 @@ canvas.addEventListener('mousedown', (e) => {
         updateCursor(mouseX, mouseY);
 
         // Show radius controls if a rectangle is selected OR if Rectangle tool is active
-        const radiusControls = document.getElementById('radius-controls');
         if ((selectedShape && selectedShape.type === 'rect') || currentTool === 'rect') {
             radiusControls.style.display = 'flex';
             updateRadiusInputsFromShape(selectedShape);
@@ -643,10 +648,6 @@ canvas.addEventListener('mousedown', (e) => {
 
         updateThicknessInputFromShape(selectedShape);
         updateFontInputsFromShape(selectedShape);
-
-        const thicknessControls = document.getElementById('thickness-controls');
-        const fontControls = document.getElementById('font-controls');
-        const fillControlGroup = document.getElementById('fill-control-group');
 
         // Update fill picker visibility based on selected shape type
         if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
@@ -1051,10 +1052,19 @@ canvas.addEventListener('mouseleave', () => {
 
 // Actions
 document.getElementById('save-btn').addEventListener('click', () => {
+    // Temporarily deselect to avoid handles in screenshot
+    const tempSelectedShape = selectedShape;
+    selectedShape = null;
+    redraw();
+
     const link = document.createElement('a');
     link.download = 'screencap-' + Date.now() + '.png';
     link.href = canvas.toDataURL();
     link.click();
+
+    // Restore selection
+    selectedShape = tempSelectedShape;
+    redraw();
 });
 
 document.getElementById('discard-btn').addEventListener('click', () => {

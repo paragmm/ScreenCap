@@ -10,10 +10,12 @@
 
 <body>
     <div class="toolbar">
-        <div class="logo">ScreenCap <span>Editor</span></div>
-        <div class="tools">
-            <div class="tool-section">
-                <span class="section-label">Select</span>
+        <div class="toolbar-left">
+            <div class="logo">ScreenCap <span>Editor</span></div>
+        </div>
+
+        <div class="toolbar-center">
+            <div class="tool-section main-tools">
                 <div class="tool-group">
                     <button class="tool-btn active" id="tool-select" title="Select">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
@@ -22,14 +24,6 @@
                             <path d="M13 13l6 6"></path>
                         </svg>
                     </button>
-                </div>
-            </div>
-
-            <div class="separator"></div>
-
-            <div class="tool-section">
-                <span class="section-label">Draw</span>
-                <div class="tool-group">
                     <button class="tool-btn" id="tool-pen" title="Pen">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
                             fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -48,12 +42,9 @@
                         </svg>
                     </button>
                 </div>
-            </div>
 
-            <div class="separator"></div>
+                <div class="separator-v"></div>
 
-            <div class="tool-section">
-                <span class="section-label">Shapes</span>
                 <div class="tool-group">
                     <button class="tool-btn" id="tool-line" title="Line">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
@@ -80,14 +71,6 @@
                             <circle cx="12" cy="12" r="10"></circle>
                         </svg>
                     </button>
-                </div>
-            </div>
-
-            <div class="separator"></div>
-
-            <div class="tool-section">
-                <span class="section-label">Text</span>
-                <div class="tool-group">
                     <button class="tool-btn" id="tool-text" title="Text">
                         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
                             fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -97,32 +80,18 @@
                         </svg>
                     </button>
                 </div>
-            </div>
 
-            <div class="separator"></div>
+                <div class="separator-v"></div>
 
-            <div class="tool-section">
-                <span class="section-label">Actions</span>
-                <div class="tool-group">
-                    <button class="tool-btn" id="tool-clear" title="Clear All">
-                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
-                            fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 20 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
-                            </path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                    </button>
+                <div id="thickness-controls" class="config-item">
+                    <div class="slider-wrapper">
+                        <input type="range" id="line-thickness" min="1" max="20" value="3">
+                        <span id="thickness-val" class="config-label">3px</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="separator"></div>
-
-            <div class="config-controls">
-                <div class="radius-controls" id="radius-controls" style="display: none;">
-                    <div class="control-label">Corner Radius</div>
-                    <div class="radius-inputs">
+                <div id="radius-controls" class="config-item" style="display: none;">
+                    <div class="radius-grid">
                         <input type="number" id="radius-tl" title="Top Left" placeholder="TL" min="0" value="0">
                         <input type="number" id="radius-tr" title="Top Right" placeholder="TR" min="0" value="0">
                         <input type="number" id="radius-br" title="Bottom Right" placeholder="BR" min="0" value="0">
@@ -130,13 +99,7 @@
                     </div>
                 </div>
 
-                <div class="thickness-controls" id="thickness-controls">
-                    <div class="control-label">Thickness</div>
-                    <input type="range" id="line-thickness" min="1" max="20" value="3">
-                    <span id="thickness-val">3px</span>
-                </div>
-
-                <div class="font-controls" id="font-controls" style="display: none;">
+                <div id="font-controls" class="config-item" style="display: none;">
                     <select id="font-family">
                         <option value="Inter, sans-serif">Inter</option>
                         <option value="Arial, sans-serif">Arial</option>
@@ -144,47 +107,54 @@
                         <option value="Courier New, monospace">Monospace</option>
                     </select>
                     <input type="number" id="font-size" min="12" max="100" value="20">
-                    <div class="style-group">
-                        <button class="style-btn" id="btn-bold" title="Bold">B</button>
-                        <button class="style-btn" id="btn-italic" title="Italic">I</button>
-                        <button class="style-btn" id="btn-underline" title="Underline">U</button>
+                    <div class="style-btns">
+                        <button class="style-btn" id="btn-bold">B</button>
+                        <button class="style-btn" id="btn-italic">I</button>
+                        <button class="style-btn" id="btn-underline">U</button>
                     </div>
                 </div>
 
-                <div class="color-controls">
-                    <div class="color-group">
-                        <div class="control-label">Stroke</div>
-                        <div class="color-control-wrapper">
-                            <div class="color-control">
-                                <input type="color" id="color-picker" title="Stroke Color" value="#6366f1">
-                            </div>
-                            <div class="opacity-control">
-                                <input type="range" id="stroke-opacity" min="0" max="100" value="100"
-                                    title="Stroke Opacity">
-                                <span class="opacity-val" id="stroke-opacity-val">100%</span>
-                            </div>
+                <div class="separator-v"></div>
+
+                <div class="color-section">
+                    <div class="color-picker-wrapper" title="Stroke Color">
+                        <div class="color-header">
+                            <input type="color" id="color-picker" value="#6366f1">
+                            <span id="stroke-opacity-val" class="opacity-label">100%</span>
                         </div>
+                        <input type="range" id="stroke-opacity" min="0" max="100" value="100" class="mini-slider">
                     </div>
-                    <div class="color-group" id="fill-control-group">
-                        <div class="control-label">Fill</div>
-                        <div class="color-control-wrapper">
-                            <div class="color-control">
+                    <div id="fill-control-group" class="color-picker-wrapper" title="Fill Color" style="display: none;">
+                        <div class="color-header">
+                            <div class="fill-toggle-group">
                                 <input type="checkbox" id="fill-enabled" title="Enable Fill">
-                                <input type="color" id="fill-color-picker" title="Fill Color" value="#6366f1">
+                                <input type="color" id="fill-color-picker" value="#6366f1">
                             </div>
-                            <div class="opacity-control">
-                                <input type="range" id="fill-opacity" min="0" max="100" value="100"
-                                    title="Fill Opacity">
-                                <span class="opacity-val" id="fill-opacity-val">100%</span>
-                            </div>
+                            <span id="fill-opacity-val" class="opacity-label">100%</span>
                         </div>
+                        <input type="range" id="fill-opacity" min="0" max="100" value="100" class="mini-slider">
                     </div>
                 </div>
-            </div>
 
+                <div class="separator-v"></div>
+
+                <button class="icon-btn danger" id="tool-clear" title="Clear All">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 20 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                        </path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="toolbar-right">
             <div class="action-group">
-                <button class="action-btn discard" id="discard-btn">Discard</button>
-                <button class="action-btn save" id="save-btn">Save Image</button>
+                <button class="btn-ghost" id="discard-btn">Discard</button>
+                <button class="btn-primary" id="save-btn">Save Image</button>
             </div>
         </div>
     </div>
