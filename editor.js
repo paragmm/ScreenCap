@@ -64,7 +64,18 @@ function drawShape(shape) {
             ctx.stroke();
             break;
         case 'rect':
-            ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+            if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
+                ctx.beginPath();
+                ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
+                    shape.borderRadius.tl || 0,
+                    shape.borderRadius.tr || 0,
+                    shape.borderRadius.br || 0,
+                    shape.borderRadius.bl || 0
+                ]);
+                ctx.stroke();
+            } else {
+                ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+            }
             break;
         case 'circle':
             ctx.arc(shape.x, shape.y, shape.r, 0, 2 * Math.PI);
@@ -258,6 +269,46 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
 
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
+
+        // Show/hide radius controls
+        const radiusControls = document.getElementById('radius-controls');
+        if (currentTool === 'rect') {
+            radiusControls.style.display = 'flex';
+            updateRadiusInputsFromShape(null); // Reset to defaults or tool values
+        } else {
+            radiusControls.style.display = 'none';
+        }
+    });
+});
+
+function updateRadiusInputsFromShape(shape) {
+    const tl = document.getElementById('radius-tl');
+    const tr = document.getElementById('radius-tr');
+    const br = document.getElementById('radius-br');
+    const bl = document.getElementById('radius-bl');
+
+    if (shape && shape.type === 'rect' && shape.borderRadius) {
+        tl.value = shape.borderRadius.tl || 0;
+        tr.value = shape.borderRadius.tr || 0;
+        br.value = shape.borderRadius.br || 0;
+        bl.value = shape.borderRadius.bl || 0;
+    } else {
+        tl.value = 0;
+        tr.value = 0;
+        br.value = 0;
+        bl.value = 0;
+    }
+}
+
+// Update selected shape when radius inputs change
+['tl', 'tr', 'br', 'bl'].forEach(pos => {
+    document.getElementById(`radius-${pos}`).addEventListener('input', (e) => {
+        const val = parseInt(e.target.value) || 0;
+        if (selectedShape && selectedShape.type === 'rect') {
+            if (!selectedShape.borderRadius) selectedShape.borderRadius = {};
+            selectedShape.borderRadius[pos] = val;
+            redraw();
+        }
     });
 });
 
@@ -311,6 +362,17 @@ canvas.addEventListener('mousedown', (e) => {
         }
         redraw();
         updateCursor(mouseX, mouseY);
+
+        // Show radius controls if a rectangle is selected
+        const radiusControls = document.getElementById('radius-controls');
+        if (selectedShape && selectedShape.type === 'rect') {
+            radiusControls.style.display = 'flex';
+            updateRadiusInputsFromShape(selectedShape);
+        } else if (currentTool !== 'rect') {
+            radiusControls.style.display = 'none';
+        } else {
+            updateRadiusInputsFromShape(null);
+        }
         return;
     }
 
@@ -430,6 +492,12 @@ function createShape(type, x1, y1, x2, y2) {
             break;
         case 'rect':
             shape.x = x1; shape.y = y1; shape.w = x2 - x1; shape.h = y2 - y1;
+            shape.borderRadius = {
+                tl: parseInt(document.getElementById('radius-tl').value) || 0,
+                tr: parseInt(document.getElementById('radius-tr').value) || 0,
+                br: parseInt(document.getElementById('radius-br').value) || 0,
+                bl: parseInt(document.getElementById('radius-bl').value) || 0
+            };
             break;
         case 'circle':
             shape.x = x1; shape.y = y1;

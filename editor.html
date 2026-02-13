@@ -23,6 +23,16 @@
             <button class="tool-btn" id="tool-eraser" title="Eraser">🧼</button>
             <button class="tool-btn" id="tool-clear" title="Clear All">🗑️</button>
             <div class="separator"></div>
+            <div class="radius-controls" id="radius-controls" style="display: none;">
+                <div class="radius-input-group">
+                    <label>Radius:</label>
+                    <input type="number" id="radius-tl" title="Top Left" placeholder="TL" min="0" value="0">
+                    <input type="number" id="radius-tr" title="Top Right" placeholder="TR" min="0" value="0">
+                    <input type="number" id="radius-br" title="Bottom Right" placeholder="BR" min="0" value="0">
+                    <input type="number" id="radius-bl" title="Bottom Left" placeholder="BL" min="0" value="0">
+                </div>
+            </div>
+            <div class="separator"></div>
             <input type="color" id="color-picker" value="#6366f1">
             <div class="separator"></div>
             <button class="action-btn save" id="save-btn">Save Image</button>
