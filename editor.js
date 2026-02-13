@@ -22,6 +22,7 @@ let currentFontFamily = 'Inter, sans-serif';
 let currentBold = false;
 let currentItalic = false;
 let currentUnderline = false;
+let clipboardShape = null;
 
 // UI Control Elements
 const thicknessControls = document.getElementById('thickness-controls');
@@ -195,6 +196,7 @@ function drawArrow(x1, y1, x2, y2, context, thickness) {
     context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 7), y2 - headlen * Math.sin(angle - Math.PI / 7));
     context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 7), y2 - headlen * Math.sin(angle + Math.PI / 7));
     context.closePath();
+    context.fillStyle = context.strokeStyle; // Use strike color for filling the head
     context.fill();
 }
 
@@ -1072,3 +1074,88 @@ document.getElementById('discard-btn').addEventListener('click', () => {
         window.close();
     }
 });
+
+// Copy and Paste Logic
+document.addEventListener('keydown', (e) => {
+    // Don't trigger if user is typing in a text input or content editable element
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        copyShape();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        pasteShape();
+    }
+});
+
+function copyShape() {
+    if (selectedShape) {
+        clipboardShape = JSON.parse(JSON.stringify(selectedShape));
+    }
+}
+
+function pasteShape() {
+    if (!clipboardShape) return;
+
+    const newShape = JSON.parse(JSON.stringify(clipboardShape));
+
+    // Offset the new shape slightly to make it visible
+    const offset = 20;
+    if (newShape.type === 'line' || newShape.type === 'arrow') {
+        newShape.x1 += offset;
+        newShape.y1 += offset;
+        newShape.x2 += offset;
+        newShape.y2 += offset;
+    } else if (newShape.type === 'pen') {
+        newShape.points.forEach(p => {
+            p.x += offset;
+            p.y += offset;
+        });
+    } else {
+        newShape.x += offset;
+        newShape.y += offset;
+    }
+
+    shapes.push(newShape);
+    selectedShape = newShape;
+
+    // Update the clipboard shape to the new one so subsequent pastes continue to offset
+    // Actually, common behavior:
+    // - Copy A -> Paste -> A' (offset)
+    // - Paste again -> A'' (offset from A'?) or A'' (offset from A)?
+    // Usually paste uses the clipboard content. If we update clipboardShape, then consecutive pastes will cascade.
+    // If we DON'T update clipboardShape, consecutive pastes will stack on top of each other (bad).
+    // So updating clipboardShape is good for cascading.
+    clipboardShape = JSON.parse(JSON.stringify(newShape));
+
+    redraw();
+
+    // Update UI controls to reflect the new selection
+    if (newShape.type === 'rect') {
+        radiusControls.style.display = 'flex';
+        updateRadiusInputsFromShape(newShape);
+    } else {
+        radiusControls.style.display = 'none';
+    }
+
+    if (newShape.type === 'rect' || newShape.type === 'circle') {
+        fillControlGroup.style.display = 'flex';
+    } else {
+        fillControlGroup.style.display = 'none';
+    }
+
+    if (newShape.type === 'text') {
+        thicknessControls.style.display = 'none';
+        fontControls.style.display = 'flex';
+    } else {
+        thicknessControls.style.display = 'flex';
+        fontControls.style.display = 'none';
+        updateFontInputsFromShape(null); // Reset font controls if not text
+    }
+
+    updateThicknessInputFromShape(newShape);
+    if (newShape.type === 'text') {
+        updateFontInputsFromShape(newShape);
+    }
+}
