@@ -154,15 +154,29 @@
                 <div class="color-controls">
                     <div class="color-group">
                         <div class="control-label">Stroke</div>
-                        <div class="color-control">
-                            <input type="color" id="color-picker" title="Stroke Color" value="#6366f1">
+                        <div class="color-control-wrapper">
+                            <div class="color-control">
+                                <input type="color" id="color-picker" title="Stroke Color" value="#6366f1">
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="stroke-opacity" min="0" max="100" value="100"
+                                    title="Stroke Opacity">
+                                <span class="opacity-val" id="stroke-opacity-val">100%</span>
+                            </div>
                         </div>
                     </div>
                     <div class="color-group" id="fill-control-group">
                         <div class="control-label">Fill</div>
-                        <div class="color-control">
-                            <input type="checkbox" id="fill-enabled" title="Enable Fill">
-                            <input type="color" id="fill-color-picker" title="Fill Color" value="#6366f1">
+                        <div class="color-control-wrapper">
+                            <div class="color-control">
+                                <input type="checkbox" id="fill-enabled" title="Enable Fill">
+                                <input type="color" id="fill-color-picker" title="Fill Color" value="#6366f1">
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="fill-opacity" min="0" max="100" value="100"
+                                    title="Fill Opacity">
+                                <span class="opacity-val" id="fill-opacity-val">100%</span>
+                            </div>
                         </div>
                     </div>
                 </div>

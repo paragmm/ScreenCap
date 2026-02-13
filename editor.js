@@ -5,7 +5,9 @@ let currentTool = 'select';
 let isDrawing = false;
 let startX, startY;
 let currentColor = '#6366f1';
+let currentStrokeOpacity = 1.0;
 let currentFillColor = '#6366f1';
+let currentFillOpacity = 1.0;
 let isFillEnabled = false;
 let currentThickness = 3;
 let shapes = [];
@@ -59,8 +61,8 @@ function redraw() {
 }
 
 function drawShape(shape) {
-    ctx.strokeStyle = shape.color;
-    ctx.fillStyle = shape.color;
+    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0);
+    ctx.fillStyle = hexToRGBA(shape.fillColor, shape.fillOpacity || 1.0);
     ctx.lineWidth = shape.thickness || 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -73,7 +75,6 @@ function drawShape(shape) {
             break;
         case 'rect':
             if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
-                ctx.fillStyle = shape.fillColor;
                 if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
                     ctx.beginPath();
                     ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
@@ -146,6 +147,21 @@ function drawShape(shape) {
             });
             break;
     }
+}
+
+function hexToRGBA(hex, opacity) {
+    if (!hex || hex === 'transparent' || hex === '#ffffff00') return 'transparent';
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 4) {
+        r = parseInt(hex[1] + hex[1], 16);
+        g = parseInt(hex[2] + hex[2], 16);
+        b = parseInt(hex[3] + hex[3], 16);
+    } else if (hex.length === 7) {
+        r = parseInt(hex.substring(1, 3), 16);
+        g = parseInt(hex.substring(3, 5), 16);
+        b = parseInt(hex.substring(5, 7), 16);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
 function drawArrow(x1, y1, x2, y2, context, thickness) {
@@ -406,17 +422,32 @@ function updateFontInputsFromShape(shape) {
     // Sync color pickers and fill checkbox
     if (shape) {
         document.getElementById('color-picker').value = shape.color || currentColor;
+        const sOpacity = (shape.strokeOpacity !== undefined) ? shape.strokeOpacity : currentStrokeOpacity;
+        document.getElementById('stroke-opacity').value = Math.round(sOpacity * 100);
+        document.getElementById('stroke-opacity-val').innerText = `${Math.round(sOpacity * 100)}%`;
+
         if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
             document.getElementById('fill-color-picker').value = shape.fillColor;
             document.getElementById('fill-enabled').checked = true;
+            const fOpacity = (shape.fillOpacity !== undefined) ? shape.fillOpacity : currentFillOpacity;
+            document.getElementById('fill-opacity').value = Math.round(fOpacity * 100);
+            document.getElementById('fill-opacity-val').innerText = `${Math.round(fOpacity * 100)}%`;
         } else {
             document.getElementById('fill-enabled').checked = false;
             document.getElementById('fill-color-picker').value = currentFillColor;
+            const fOpacity = currentFillOpacity;
+            document.getElementById('fill-opacity').value = Math.round(fOpacity * 100);
+            document.getElementById('fill-opacity-val').innerText = `${Math.round(fOpacity * 100)}%`;
         }
     } else {
         document.getElementById('color-picker').value = currentColor;
+        document.getElementById('stroke-opacity').value = Math.round(currentStrokeOpacity * 100);
+        document.getElementById('stroke-opacity-val').innerText = `${Math.round(currentStrokeOpacity * 100)}%`;
+
         document.getElementById('fill-enabled').checked = isFillEnabled;
         document.getElementById('fill-color-picker').value = currentFillColor;
+        document.getElementById('fill-opacity').value = Math.round(currentFillOpacity * 100);
+        document.getElementById('fill-opacity-val').innerText = `${Math.round(currentFillOpacity * 100)}%`;
     }
 }
 
@@ -490,6 +521,26 @@ document.getElementById('line-thickness').addEventListener('input', (e) => {
     if (valDisplay) valDisplay.innerText = `${val}px`;
     if (selectedShape) {
         selectedShape.thickness = val;
+        redraw();
+    }
+});
+
+document.getElementById('stroke-opacity').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value) / 100;
+    currentStrokeOpacity = val;
+    document.getElementById('stroke-opacity-val').innerText = `${e.target.value}%`;
+    if (selectedShape) {
+        selectedShape.strokeOpacity = val;
+        redraw();
+    }
+});
+
+document.getElementById('fill-opacity').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value) / 100;
+    currentFillOpacity = val;
+    document.getElementById('fill-opacity-val').innerText = `${e.target.value}%`;
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+        selectedShape.fillOpacity = val;
         redraw();
     }
 });
@@ -809,11 +860,13 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 function createShape(type, x1, y1, x2, y2) {
-    const isFill = document.getElementById('fill-enabled').checked;
+    const fillEnabled = document.getElementById('fill-enabled').checked;
     const shape = {
         type,
         color: currentColor,
-        fillColor: (isFill && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
+        strokeOpacity: currentStrokeOpacity,
+        fillColor: (fillEnabled && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
+        fillOpacity: (type === 'rect' || type === 'circle') ? currentFillOpacity : 1.0,
         thickness: currentThickness
     };
     switch (type) {
