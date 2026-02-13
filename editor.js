@@ -232,6 +232,7 @@ canvas.addEventListener('mousedown', (e) => {
         input.style.color = currentColor;
         input.style.fontSize = '20px';
         input.style.fontFamily = 'Inter, sans-serif';
+        input.style.lineHeight = '24px';
         document.body.appendChild(input);
 
         setTimeout(() => input.focus(), 0);
@@ -241,8 +242,8 @@ canvas.addEventListener('mousedown', (e) => {
             if (text) {
                 shapes.push({
                     type: 'text',
-                    x: mouseX,
-                    y: mouseY,
+                    x: mouseX + 5, // Account for padding (4px) + border (1px)
+                    y: mouseY + 5,
                     text: text,
                     color: currentColor
                 });
