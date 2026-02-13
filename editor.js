@@ -149,6 +149,32 @@ function getResizeHandles(bounds) {
     };
 }
 
+function updateCursor(mouseX, mouseY) {
+    if (mouseX === undefined || mouseY === undefined) {
+        canvas.style.cursor = '';
+        return;
+    }
+
+    if (currentTool === 'select' || currentTool === 'eraser') {
+        const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
+        if (currentTool === 'select' && handle) {
+            const bounds = getShapeBounds(selectedShape);
+            const handles = getResizeHandles(bounds);
+            canvas.style.cursor = handles[handle].cursor;
+            return;
+        }
+
+        const isOverShape = shapes.some(s => isPointInShape(mouseX, mouseY, s));
+        if (isOverShape) {
+            canvas.style.cursor = currentTool === 'eraser' ? 'crosshair' : 'grab';
+        } else {
+            canvas.style.cursor = ''; // Let CSS handles .selecting class
+        }
+    } else {
+        canvas.style.cursor = ''; // Let CSS handle crosshair
+    }
+}
+
 function getHandleAtPoint(x, y, shape) {
     if (!shape) return null;
     const bounds = getShapeBounds(shape);
@@ -226,6 +252,8 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
 
         selectedShape = null;
         canvas.className = (currentTool === 'select' || currentTool === 'eraser') ? 'selecting' : '';
+        canvas.style.cursor = ''; // Clear inline cursor
+        updateCursor(); // Update based on new tool
         redraw();
 
         const existingInput = document.querySelector('.text-input');
@@ -282,6 +310,7 @@ canvas.addEventListener('mousedown', (e) => {
             selectedShape = null;
         }
         redraw();
+        updateCursor(mouseX, mouseY);
         return;
     }
 
@@ -350,23 +379,15 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('mousemove', (e) => {
-    if (!isDrawing) return;
-
     const rect = canvas.getBoundingClientRect();
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
 
-    if (currentTool === 'select' || currentTool === 'eraser') {
-        const handle = getHandleAtPoint(currentX, currentY, selectedShape);
-        if (currentTool === 'select' && handle) {
-            const bounds = getShapeBounds(selectedShape);
-            const handles = getResizeHandles(bounds);
-            canvas.style.cursor = handles[handle].cursor;
-        } else {
-            const isOverShape = shapes.some(s => isPointInShape(currentX, currentY, s));
-            canvas.style.cursor = isOverShape ? (currentTool === 'eraser' ? 'crosshair' : 'grab') : 'default';
-        }
+    updateCursor(currentX, currentY);
 
+    if (!isDrawing) return;
+
+    if (currentTool === 'select' || currentTool === 'eraser') {
         if (currentTool === 'select' && isResizing && selectedShape) {
             const dx = currentX - dragStartX;
             const dy = currentY - dragStartY;
@@ -523,7 +544,12 @@ canvas.addEventListener('mouseup', (e) => {
     isDrawing = false;
     isResizing = false;
     activeHandle = null;
+    updateCursor(currentX, currentY);
     redraw();
+});
+
+canvas.addEventListener('mouseleave', () => {
+    updateCursor();
 });
 
 // Actions
