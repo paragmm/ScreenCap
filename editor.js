@@ -1,7 +1,7 @@
 const canvas = document.getElementById('editor-canvas');
 const ctx = canvas.getContext('2d');
 let img = new Image();
-let currentTool = 'rect';
+let currentTool = 'pen';
 let isDrawing = false;
 let startX, startY;
 let currentColor = '#6366f1';
@@ -54,12 +54,20 @@ canvas.addEventListener('mousedown', (e) => {
     const rect = canvas.getBoundingClientRect();
     startX = e.clientX - rect.left;
     startY = e.clientY - rect.top;
-    saveSnapshot();
+
+    if (currentTool === 'pen') {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+    } else {
+        saveSnapshot();
+    }
 });
 
 canvas.addEventListener('mousemove', (e) => {
     if (!isDrawing) return;
-    restoreSnapshot();
 
     const rect = canvas.getBoundingClientRect();
     const currentX = e.clientX - rect.left;
@@ -69,17 +77,32 @@ canvas.addEventListener('mousemove', (e) => {
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
 
-    if (currentTool === 'line') {
+    if (currentTool === 'pen') {
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+    } else if (currentTool === 'line') {
+        restoreSnapshot();
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(currentX, currentY);
         ctx.stroke();
     } else if (currentTool === 'rect') {
+        restoreSnapshot();
         ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
     } else if (currentTool === 'circle') {
+        restoreSnapshot();
         const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
         ctx.beginPath();
         ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    } else if (currentTool === 'oval') {
+        restoreSnapshot();
+        const centerX = startX + (currentX - startX) / 2;
+        const centerY = startY + (currentY - startY) / 2;
+        const radiusX = Math.abs(currentX - startX) / 2;
+        const radiusY = Math.abs(currentY - startY) / 2;
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
         ctx.stroke();
     }
 });

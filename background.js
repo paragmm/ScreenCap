@@ -17,6 +17,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.action === 'captureSegment') {
+        chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
+            sendResponse({ dataUrl: dataUrl });
+        });
+        return true;
+    }
+
     if (request.action === 'openEditorWithData') {
         openEditor(request.dataUrl);
         sendResponse({ status: 'success' });

@@ -1,38 +1,99 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'startFullPageCapture') {
+    if (request.action === 'ping') {
+        sendResponse({ status: 'pong' });
+    } else if (request.action === 'startFullPageCapture') {
         handleFullPageCapture();
     } else if (request.action === 'startSelectiveCapture') {
         startSelectiveSelection();
     }
+    return true;
 });
 
 async function handleFullPageCapture() {
-    const scrollHeight = document.documentElement.scrollHeight;
-    const viewHeight = window.innerHeight;
-    const totalSteps = Math.ceil(scrollHeight / viewHeight);
-    let capturedChunks = [];
+    try {
+        // Scroll to top first as requested
+        window.scrollTo(0, 0);
+        await new Promise(r => setTimeout(r, 500));
 
-    // Hide scrollbar temporarily
-    const originalOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
+        const scrollHeight = document.documentElement.scrollHeight;
+        const scrollWidth = document.documentElement.scrollWidth;
+        const viewHeight = window.innerHeight;
+        const viewWidth = window.innerWidth;
+        const dpr = window.devicePixelRatio || 1;
 
-    for (let i = 0; i < totalSteps; i++) {
-        window.scrollTo(0, i * viewHeight);
-        await new Promise(r => setTimeout(r, 500)); // Wait for content/JS to settle
+        // Hide scrollbar temporarily
+        const originalOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = 'hidden';
 
-        // Request visible capture from background
-        const dataUrl = await new Promise(resolve => {
-            chrome.runtime.sendMessage({ action: 'captureVisible' }, (response) => {
-                // We don't actually need the response here because background.js handles the editor
-                // But for full page, we need to stitch. 
-                // Wait, the current background.js just opens the editor. 
-                // I need a specialized background listener for stitching.
-                resolve();
+        // Wait for layout to settle after hiding scrollbar
+        await new Promise(r => setTimeout(r, 200));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = scrollWidth * dpr;
+        canvas.height = scrollHeight * dpr;
+        const ctx = canvas.getContext('2d');
+
+        let currentScroll = 0;
+        while (currentScroll < scrollHeight) {
+            window.scrollTo(0, currentScroll);
+            // Wait for fixed elements and content to settle
+            await new Promise(r => setTimeout(r, 600));
+
+            const response = await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: 'captureSegment' }, (res) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                    } else {
+                        resolve(res);
+                    }
+                });
             });
-        });
-    }
 
-    document.documentElement.style.overflow = originalOverflow;
+            if (!response || !response.dataUrl) {
+                throw new Error('Failed to capture segment');
+            }
+
+            const img = new Image();
+            img.src = response.dataUrl;
+
+            await new Promise((resolve, reject) => {
+                img.onload = () => {
+                    // Calculate exact source and destination to avoid seams
+                    const remainingHeight = scrollHeight - currentScroll;
+                    const drawHeight = Math.min(viewHeight, remainingHeight);
+
+                    // If it's the last segment, it might be shorter than the viewport
+                    // We take the bottom slice of the viewport capture
+                    const sourceY = (viewHeight - drawHeight) * dpr;
+
+                    ctx.drawImage(
+                        img,
+                        0, sourceY, // Source X, Y
+                        viewWidth * dpr, drawHeight * dpr, // Source W, H
+                        0, currentScroll * dpr, // Destination X, Y
+                        viewWidth * dpr, drawHeight * dpr // Destination W, H
+                    );
+                    resolve();
+                };
+                img.onerror = () => reject(new Error('Failed to load segment image'));
+            });
+
+            currentScroll += viewHeight;
+            if (currentScroll >= scrollHeight) break;
+        }
+
+        // Reset overflow
+        document.documentElement.style.overflow = originalOverflow;
+
+        // Send stitched image to editor
+        const finalDataUrl = canvas.toDataURL('image/png');
+        chrome.runtime.sendMessage({ action: 'openEditorWithData', dataUrl: finalDataUrl });
+    } catch (error) {
+        console.error('Full page capture failed:', error);
+        alert('Screenshot failed: ' + error.message + '. Please try again.');
+        // Cleanup if possible
+        document.documentElement.style.overflow = '';
+    }
 }
 
 function startSelectiveSelection() {
