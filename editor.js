@@ -629,7 +629,7 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentTool === 'pen') {
         shapes[shapes.length - 1].points.push({ x: currentX, y: currentY });
         redraw();
-    } else if (['line', 'rect', 'circle', 'oval', 'arrow'].includes(currentTool)) {
+    } else if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
         redraw();
         // Draw the shape being created (not yet in shapes array)
         const tempShape = createShape(currentTool, startX, startY, currentX, currentY);
@@ -656,12 +656,6 @@ function createShape(type, x1, y1, x2, y2) {
         case 'circle':
             shape.x = x1; shape.y = y1;
             shape.r = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-            break;
-        case 'oval':
-            shape.x = x1 + (x2 - x1) / 2;
-            shape.y = y1 + (y2 - y1) / 2;
-            shape.rx = Math.abs(x2 - x1) / 2;
-            shape.ry = Math.abs(y2 - y1) / 2;
             break;
     }
     return shape;
@@ -776,7 +770,7 @@ canvas.addEventListener('mouseup', (e) => {
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
 
-    if (['line', 'rect', 'circle', 'oval', 'arrow'].includes(currentTool)) {
+    if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
         shapes.push(createShape(currentTool, startX, startY, currentX, currentY));
     }
 
