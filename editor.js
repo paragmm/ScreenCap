@@ -15,6 +15,9 @@ let dragStartX, dragStartY;
 const RESIZE_HANDLE_SIZE = 8;
 let currentFontSize = 20;
 let currentFontFamily = 'Inter, sans-serif';
+let currentBold = false;
+let currentItalic = false;
+let currentUnderline = false;
 
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
@@ -100,12 +103,25 @@ function drawShape(shape) {
             ctx.stroke();
             break;
         case 'text':
-            ctx.font = `${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
+            const fontWeight = shape.bold ? 'bold' : 'normal';
+            const fontStyle = shape.italic ? 'italic' : 'normal';
+            ctx.font = `${fontStyle} ${fontWeight} ${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
             ctx.textBaseline = 'top';
             const lines = shape.text.split('\n');
             const lineHeight = (shape.fontSize || 20) * 1.2;
             lines.forEach((line, index) => {
-                ctx.fillText(line, shape.x, shape.y + (index * lineHeight));
+                const lx = shape.x;
+                const ly = shape.y + (index * lineHeight);
+                ctx.fillText(line, lx, ly);
+
+                if (shape.underline) {
+                    const metrics = ctx.measureText(line);
+                    ctx.beginPath();
+                    ctx.lineWidth = Math.max(1, (shape.fontSize || 20) / 15);
+                    ctx.moveTo(lx, ly + (shape.fontSize || 20));
+                    ctx.lineTo(lx + metrics.width, ly + (shape.fontSize || 20));
+                    ctx.stroke();
+                }
             });
             break;
     }
@@ -345,11 +361,60 @@ function updateFontInputsFromShape(shape) {
     if (shape && shape.type === 'text') {
         familySelect.value = shape.fontFamily || 'Inter, sans-serif';
         sizeInput.value = shape.fontSize || 20;
+        document.getElementById('btn-bold').classList.toggle('active', !!shape.bold);
+        document.getElementById('btn-italic').classList.toggle('active', !!shape.italic);
+        document.getElementById('btn-underline').classList.toggle('active', !!shape.underline);
     } else {
         familySelect.value = currentFontFamily;
         sizeInput.value = currentFontSize;
+        document.getElementById('btn-bold').classList.toggle('active', currentBold);
+        document.getElementById('btn-italic').classList.toggle('active', currentItalic);
+        document.getElementById('btn-underline').classList.toggle('active', currentUnderline);
     }
 }
+
+// Style Toggles
+['bold', 'italic', 'underline'].forEach(style => {
+    const btn = document.getElementById(`btn-${style}`);
+
+    // Prevent focus loss from text input
+    btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+    });
+
+    btn.addEventListener('click', () => {
+        const isActive = btn.classList.toggle('active');
+
+        if (selectedShape && selectedShape.type === 'text') {
+            selectedShape[style] = isActive;
+            redraw();
+        } else {
+            if (style === 'bold') currentBold = isActive;
+            if (style === 'italic') currentItalic = isActive;
+            if (style === 'underline') currentUnderline = isActive;
+        }
+
+        // Update active input if it exists
+        const input = document.querySelector('.text-input');
+        if (input) {
+            if (style === 'bold') input.style.fontWeight = isActive ? 'bold' : 'normal';
+            if (style === 'italic') input.style.fontStyle = isActive ? 'italic' : 'normal';
+            if (style === 'underline') input.style.textDecoration = isActive ? 'underline' : 'none';
+        }
+    });
+});
+
+// Also prevent focus loss for other font controls
+['font-family', 'font-size'].forEach(id => {
+    document.getElementById(id).addEventListener('mousedown', (e) => {
+        // We only want to prevent focus loss if a text input is active
+        if (document.querySelector('.text-input')) {
+            // e.preventDefault(); // Don't prevent default for selects/inputs as it breaks them
+            // Instead, we catch the blur and prevent it or refocus? 
+            // Actually, for select/input, it's better to let them take focus but handle the blur.
+        }
+    });
+});
 
 // Update selected shape when radius inputs change
 ['tl', 'tr', 'br', 'bl'].forEach(pos => {
@@ -395,6 +460,10 @@ document.getElementById('font-family').addEventListener('change', (e) => {
         selectedShape.fontFamily = val;
         redraw();
     }
+    const input = document.querySelector('.text-input');
+    if (input) {
+        input.style.fontFamily = val;
+    }
 });
 
 document.getElementById('font-size').addEventListener('input', (e) => {
@@ -403,6 +472,11 @@ document.getElementById('font-size').addEventListener('input', (e) => {
     if (selectedShape && selectedShape.type === 'text') {
         selectedShape.fontSize = val;
         redraw();
+    }
+    const input = document.querySelector('.text-input');
+    if (input) {
+        input.style.fontSize = `${val}px`;
+        input.style.lineHeight = `${val * 1.2}px`;
     }
 });
 
@@ -503,8 +577,21 @@ canvas.addEventListener('mousedown', (e) => {
             input.style.color = shapeToEdit.color;
             input.style.fontSize = `${shapeToEdit.fontSize || 20}px`;
             input.style.fontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
+            input.style.fontWeight = shapeToEdit.bold ? 'bold' : 'normal';
+            input.style.fontStyle = shapeToEdit.italic ? 'italic' : 'normal';
+            input.style.textDecoration = shapeToEdit.underline ? 'underline' : 'none';
             input.style.lineHeight = `${(shapeToEdit.fontSize || 20) * 1.2}px`;
             input.innerText = shapeToEdit.text;
+
+            // Update global state to match the shape being edited
+            currentBold = !!shapeToEdit.bold;
+            currentItalic = !!shapeToEdit.italic;
+            currentUnderline = !!shapeToEdit.underline;
+            currentFontSize = shapeToEdit.fontSize || 20;
+            currentFontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
+            currentColor = shapeToEdit.color;
+            document.getElementById('color-picker').value = currentColor;
+            updateFontInputsFromShape(null); // Sync toolbar buttons
 
             // Temporarily remove shape from array while editing
             shapes.splice(actualIndex, 1);
@@ -525,6 +612,12 @@ canvas.addEventListener('mousedown', (e) => {
                 const text = input.innerText.trim();
                 if (text) {
                     shapeToEdit.text = text;
+                    shapeToEdit.color = currentColor;
+                    shapeToEdit.fontSize = currentFontSize;
+                    shapeToEdit.fontFamily = currentFontFamily;
+                    shapeToEdit.bold = currentBold;
+                    shapeToEdit.italic = currentItalic;
+                    shapeToEdit.underline = currentUnderline;
                     shapes.push(shapeToEdit);
                     redraw();
                 }
@@ -549,6 +642,9 @@ canvas.addEventListener('mousedown', (e) => {
         input.style.color = currentColor;
         input.style.fontSize = `${currentFontSize}px`;
         input.style.fontFamily = currentFontFamily;
+        input.style.fontWeight = currentBold ? 'bold' : 'normal';
+        input.style.fontStyle = currentItalic ? 'italic' : 'normal';
+        input.style.textDecoration = currentUnderline ? 'underline' : 'none';
         input.style.lineHeight = `${currentFontSize * 1.2}px`;
         document.body.appendChild(input);
 
@@ -564,7 +660,10 @@ canvas.addEventListener('mousedown', (e) => {
                     text: text,
                     color: currentColor,
                     fontSize: currentFontSize,
-                    fontFamily: currentFontFamily
+                    fontFamily: currentFontFamily,
+                    bold: currentBold,
+                    italic: currentItalic,
+                    underline: currentUnderline
                 });
                 redraw();
             }
