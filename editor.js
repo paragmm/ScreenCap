@@ -5,6 +5,7 @@ let currentTool = 'select';
 let isDrawing = false;
 let startX, startY;
 let currentColor = '#6366f1';
+let currentThickness = 3;
 let shapes = [];
 let selectedShape = null;
 let cropData = null;
@@ -53,7 +54,7 @@ function redraw() {
 function drawShape(shape) {
     ctx.strokeStyle = shape.color;
     ctx.fillStyle = shape.color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = shape.thickness || 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
 
@@ -86,7 +87,7 @@ function drawShape(shape) {
             ctx.stroke();
             break;
         case 'arrow':
-            drawArrow(shape.x1, shape.y1, shape.x2, shape.y2, ctx);
+            drawArrow(shape.x1, shape.y1, shape.x2, shape.y2, ctx, shape.thickness);
             break;
         case 'pen':
             if (shape.points.length < 2) return;
@@ -107,8 +108,8 @@ function drawShape(shape) {
     }
 }
 
-function drawArrow(x1, y1, x2, y2, context) {
-    const headlen = 15;
+function drawArrow(x1, y1, x2, y2, context, thickness) {
+    const headlen = 10 + (thickness || 3) * 2;
     const dx = x2 - x1;
     const dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
@@ -270,7 +271,6 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
 
-        // Show/hide radius controls
         const radiusControls = document.getElementById('radius-controls');
         if (currentTool === 'rect') {
             radiusControls.style.display = 'flex';
@@ -278,6 +278,8 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
         } else {
             radiusControls.style.display = 'none';
         }
+
+        updateThicknessInputFromShape(null);
     });
 });
 
@@ -300,6 +302,15 @@ function updateRadiusInputsFromShape(shape) {
     }
 }
 
+function updateThicknessInputFromShape(shape) {
+    const thicknessInput = document.getElementById('line-thickness');
+    if (shape && shape.thickness) {
+        thicknessInput.value = shape.thickness;
+    } else {
+        thicknessInput.value = currentThickness;
+    }
+}
+
 // Update selected shape when radius inputs change
 ['tl', 'tr', 'br', 'bl'].forEach(pos => {
     document.getElementById(`radius-${pos}`).addEventListener('input', (e) => {
@@ -316,6 +327,15 @@ document.getElementById('tool-clear').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all shapes?')) {
         shapes = [];
         selectedShape = null;
+        redraw();
+    }
+});
+
+document.getElementById('line-thickness').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value) || 1;
+    currentThickness = val;
+    if (selectedShape) {
+        selectedShape.thickness = val;
         redraw();
     }
 });
@@ -368,11 +388,11 @@ canvas.addEventListener('mousedown', (e) => {
         if (selectedShape && selectedShape.type === 'rect') {
             radiusControls.style.display = 'flex';
             updateRadiusInputsFromShape(selectedShape);
-        } else if (currentTool !== 'rect') {
-            radiusControls.style.display = 'none';
         } else {
             updateRadiusInputsFromShape(null);
         }
+
+        updateThicknessInputFromShape(selectedShape);
         return;
     }
 
@@ -429,7 +449,8 @@ canvas.addEventListener('mousedown', (e) => {
         shapes.push({
             type: 'pen',
             points: [{ x: mouseX, y: mouseY }],
-            color: currentColor
+            color: currentColor,
+            thickness: currentThickness
         });
     } else if (currentTool === 'eraser') {
         // Eraser in shape-based system is complex if it's supposed to erase parts.
@@ -484,7 +505,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 function createShape(type, x1, y1, x2, y2) {
-    const shape = { type, color: currentColor };
+    const shape = { type, color: currentColor, thickness: currentThickness };
     switch (type) {
         case 'line':
         case 'arrow':
