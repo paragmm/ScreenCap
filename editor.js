@@ -802,7 +802,9 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
             return resizeShape(shape, handleType, dx, dy, mouseX, mouseY);
 
         case 'line':
-        case 'arrow':
+        case 'arrow': {
+            const dist1 = Math.sqrt(Math.pow(mouseX - shape.x1, 2) + Math.pow(mouseY - shape.y1, 2));
+            const dist2 = Math.sqrt(Math.pow(mouseX - shape.x2, 2) + Math.pow(mouseY - shape.y2, 2));
             if (dist1 < dist2) {
                 if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
                     if (handleType.includes('w') || handleType.includes('e')) shape.x1 += dx;
@@ -815,6 +817,7 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
                 }
             }
             break;
+        }
 
         case 'text': {
             const isN = handleType.includes('n');
