@@ -8,29 +8,49 @@ Developed by **Parag Dhali**.
 
 ## ✨ Key Features
 
-### 📸 Capture
+### 📸 Pro Capture
 - **Instant Screenshot**: Capture your current tab with a single click.
 - **High Resolution**: High-fidelity captures ensuring clarity for documentation or sharing.
+- **Smart Context**: Preserves the original tab's dimensions and clarity.
 
 ### 🎨 Advanced Editing Suite
 A full-featured toolbar with glassmorphism aesthetics and precise controls:
-- **Select Tool**: Easily manipulate, resize, and move objects on the canvas.
-- **Pen & Eraser**: Fluid freehand drawing and precision erasing.
+- **Undo & Redo**: Fully non-destructive workflow with deep history tracking.
+- **Select Tool**: Manipulate, resize, and move objects on the canvas with intuitive handles.
+- **Pen & Eraser**: Fluid freehand drawing and precision element removal.
 - **Shapes**:
   - **Line & Arrow**: Perfect for highlighting directions or connections.
-  - **Rectangle & Circle**: Clean geometric annotations.
-- **Rich Text**: 
+  - **Rectangle & Circle/Oval**: Clean geometric annotations with advanced styling.
+- **Rich Text Tool**: 
+  - Dynamic in-place editing.
   - Variety of fonts (Inter, Arial, Georgia, Monospace).
   - Advanced styling: **Bold**, *Italic*, and <u>Underline</u>.
-  - Granular font sizing.
+  - Granular font sizing and real-time preview.
 
 ### ⚙️ Precision Controls
 - **Smart Sizing**: Adjustable line thickness from 1px to 20px.
-- **Corner Styling**: Individual corner radius controls for rectangles (Top-Left, Top-Right, etc.).
+- **Corner Styling**: Individual corner radius controls for rectangles (Top-Left, Top-Right, etc.) with a sync toggle.
 - **Dynamic Color System**:
-  - Stroke and Fill colors with independent opacity sliders.
+  - Independent Stroke and Fill colors.
+  - Granular opacity sliders (0-100%) for both stroke and fill.
   - Instant toggle for shape filling.
-- **Glassmorphism UI**: A dark-themed, translucent toolbar that stays out of your way while providing all necessary tools.
+- **Modern UI**: A light-themed, dotted grid editor background for better alignment, paired with a sophisticated dark-themed glassmorphic toolbar.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+Speed up your workflow with these native shortcuts:
+
+| Shortcut | Action |
+| :--- | :--- |
+| **Ctrl + Z** | Undo last action |
+| **Ctrl + Y** | Redo last action |
+| **Ctrl + C** | Copy selected shape |
+| **Ctrl + V** | Paste copied shape |
+| **Ctrl + Shift + C** | Copy canvas to clipboard |
+| **Del / Backspace** | Delete selected object |
+| **Esc** | Deselect object / Close manual |
 
 ---
 
@@ -38,8 +58,8 @@ A full-featured toolbar with glassmorphism aesthetics and precise controls:
 
 - **Core**: JavaScript (ES6+), HTML5, CSS3.
 - **API**: Chrome Extension Manifesto V3.
-- **Styling**: Vanilla CSS with modern variables and glassmorphism effects.
-- **Rendering**: Canvas API for high-performance image manipulation.
+- **Styling**: Vanilla CSS with modern variables, flexbox/grid layouts, and glassmorphism.
+- **Rendering**: Canvas API for high-performance image manipulation and object tracking.
 
 ---
 
@@ -57,11 +77,13 @@ A full-featured toolbar with glassmorphism aesthetics and precise controls:
 
 1. **Capture**: Click the ScreenCap icon in your browser toolbar to capture the active tab.
 2. **Edit**: Use the floating toolbar to annotate your screenshot.
-   - Choose a tool from the center panel.
-   - Adjust colors, thickness, or opacity from the right section of the center panel.
-   - For text, use the font controls that appear when the Text tool is active.
-3. **Save**: Once finished, click the **"Save Image"** button to download your work as a PNG.
-4. **Discard**: Use the **"Discard"** button to exit without saving.
+   - **Select & Resize**: Use the Select tool to move or resize any element.
+   - **Styling**: Adjust colors, thickness, or opacity from the contextual controls.
+   - **Text**: Click to add text, or click existing text to edit it directly.
+3. **Save & Share**:
+   - **Save Image**: Download your work as a PNG.
+   - **Copy to Clipboard**: Use the clipboard icon or `Ctrl + Shift + C` to instantly copy the final image for pasting into Slack, Discord, or emails.
+4. **User Manual**: Need help? Click the `?` icon in the toolbar for an integrated guide.
 
 ---
 
