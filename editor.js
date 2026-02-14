@@ -25,6 +25,7 @@ let currentUnderline = false;
 let clipboardShape = null;
 let history = [[]]; // Start with an empty state
 let historyIndex = 0;
+let userManuallyCollapsedSidebar = false;
 
 let typeCounters = {
     line: 0,
@@ -92,8 +93,8 @@ function saveState() {
         historyIndex--;
     }
 
-    // Auto-expand sidebar when a shape is added/modified
-    if (layersSidebar && layersSidebar.classList.contains('collapsed')) {
+    // Auto-expand sidebar when a shape is added/modified, if not manually collapsed
+    if (layersSidebar && layersSidebar.classList.contains('collapsed') && !userManuallyCollapsedSidebar) {
         layersSidebar.classList.remove('collapsed');
     }
 
@@ -1576,6 +1577,7 @@ updateLayersList();
 // Sidebar toggle logic
 if (toggleSidebarBtn && layersSidebar) {
     toggleSidebarBtn.addEventListener('click', () => {
-        layersSidebar.classList.toggle('collapsed');
+        const isCollapsed = layersSidebar.classList.toggle('collapsed');
+        userManuallyCollapsedSidebar = isCollapsed;
     });
 }
