@@ -26,6 +26,22 @@ let clipboardShape = null;
 let history = [[]]; // Start with an empty state
 let historyIndex = 0;
 
+let typeCounters = {
+    line: 0,
+    rect: 0,
+    circle: 0,
+    oval: 0,
+    arrow: 0,
+    pen: 0,
+    text: 0
+};
+
+function getUniqueName(type) {
+    if (!typeCounters[type]) typeCounters[type] = 0;
+    typeCounters[type]++;
+    return type.charAt(0).toUpperCase() + type.slice(1) + ' ' + typeCounters[type];
+}
+
 // UI Control Elements
 const thicknessControls = document.getElementById('thickness-controls');
 const fontControls = document.getElementById('font-controls');
@@ -46,6 +62,7 @@ chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
                 canvas.height = img.height;
             }
             redraw();
+            updateLayersList();
         };
     }
 });
@@ -71,6 +88,7 @@ function saveState() {
         historyIndex--;
     }
     updateHistoryButtons();
+    updateLayersList();
 }
 
 function undo() {
@@ -80,6 +98,7 @@ function undo() {
         selectedShape = null;
         redraw();
         updateHistoryButtons();
+        updateLayersList();
     }
 }
 
@@ -90,6 +109,7 @@ function redo() {
         selectedShape = null;
         redraw();
         updateHistoryButtons();
+        updateLayersList();
     }
 }
 
@@ -117,6 +137,179 @@ function redraw() {
             drawSelectionHighlight(shape);
         }
     });
+
+    // We don't call updateLayersList here to avoid infinite loops 
+    // but we might want to sync the "active" state in sidebar.
+    syncSidebarSelection();
+}
+
+function updateUIForSelection(shape) {
+    if (shape) {
+        updateThicknessInputFromShape(shape);
+        updateFontInputsFromShape(shape);
+        updateRadiusInputsFromShape(shape);
+
+        // Update group visibilities
+        radiusControls.style.display = (shape.type === 'rect') ? 'flex' : 'none';
+
+        if (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval') {
+            fillControlGroup.style.display = 'flex';
+        } else {
+            fillControlGroup.style.display = 'none';
+        }
+
+        if (shape.type === 'text') {
+            thicknessControls.style.display = 'none';
+            fontControls.style.display = 'flex';
+        } else {
+            thicknessControls.style.display = 'flex';
+            fontControls.style.display = 'none';
+        }
+    } else {
+        // Fallback to tool defaults
+        updateThicknessInputFromShape(null);
+        updateFontInputsFromShape(null);
+        updateRadiusInputsFromShape(null);
+
+        radiusControls.style.display = (currentTool === 'rect') ? 'flex' : 'none';
+
+        if (currentTool === 'rect' || currentTool === 'circle') {
+            fillControlGroup.style.display = 'flex';
+        } else {
+            fillControlGroup.style.display = 'none';
+        }
+
+        if (currentTool === 'text') {
+            thicknessControls.style.display = 'none';
+            fontControls.style.display = 'flex';
+        } else {
+            thicknessControls.style.display = 'flex';
+            fontControls.style.display = 'none';
+        }
+    }
+}
+
+function syncSidebarSelection() {
+    const items = document.querySelectorAll('.layer-item');
+    items.forEach(item => {
+        const index = parseInt(item.dataset.index);
+        item.classList.toggle('active', shapes[index] === selectedShape);
+    });
+}
+
+function updateLayersList() {
+    const list = document.getElementById('layers-list');
+    const badge = document.getElementById('count-badge');
+    if (!list) return;
+
+    list.innerHTML = '';
+    badge.innerText = shapes.length;
+
+    // We show layers in reverse order (topmost first)
+    [...shapes].reverse().forEach((shape, revIndex) => {
+        const index = shapes.length - 1 - revIndex;
+        if (!shape.name) shape.name = getUniqueName(shape.type);
+
+        const item = document.createElement('div');
+        item.className = 'layer-item';
+        if (shape === selectedShape) item.classList.add('active');
+        item.dataset.index = index;
+        item.draggable = true;
+
+        item.innerHTML = `
+            <div class="layer-icon">${getLayerIcon(shape.type)}</div>
+            <div class="layer-info">
+                <div class="layer-name">${shape.name}</div>
+                <div class="layer-type">${shape.type}</div>
+            </div>
+            <div class="layer-actions">
+                <button class="layer-action-btn delete" title="Delete Layer">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        item.addEventListener('click', () => {
+            selectedShape = shapes[index];
+            updateUIForSelection(selectedShape);
+            redraw();
+        });
+
+        item.querySelector('.delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            shapes.splice(index, 1);
+            if (selectedShape === shape) selectedShape = null;
+            redraw();
+            saveState();
+        });
+
+        // Drag and Drop listeners
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('dragleave', handleDragLeave);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragend', handleDragEnd);
+
+        list.appendChild(item);
+    });
+}
+
+function getLayerIcon(type) {
+    switch (type) {
+        case 'line': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        case 'rect': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
+        case 'circle': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="10"></circle></svg>';
+        case 'oval': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><ellipse cx="12" cy="12" rx="10" ry="6"></ellipse></svg>';
+        case 'arrow': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg>';
+        case 'pen': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>';
+        case 'text': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>';
+        default: return '';
+    }
+}
+
+let draggedItem = null;
+
+function handleDragStart(e) {
+    draggedItem = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.dataset.index);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+}
+
+function handleDragLeave() {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const toIndex = parseInt(this.dataset.index);
+
+    if (fromIndex === toIndex) return;
+
+    // Move the shape in the array
+    const shape = shapes.splice(fromIndex, 1)[0];
+    shapes.splice(toIndex, 0, shape);
+
+    redraw();
+    saveState();
+}
+
+function handleDragEnd() {
+    this.classList.remove('dragging');
+    draggedItem = null;
+    document.querySelectorAll('.layer-item').forEach(item => item.classList.remove('drag-over'));
 }
 
 function drawShape(shape) {
@@ -726,38 +919,10 @@ canvas.addEventListener('mousedown', (e) => {
         } else {
             selectedShape = null;
         }
+
+        updateUIForSelection(selectedShape);
         redraw();
         updateCursor(mouseX, mouseY);
-
-        // Show radius controls if a rectangle is selected OR if Rectangle tool is active
-        if ((selectedShape && selectedShape.type === 'rect') || currentTool === 'rect') {
-            radiusControls.style.display = 'flex';
-            updateRadiusInputsFromShape(selectedShape);
-        } else {
-            radiusControls.style.display = 'none';
-            updateRadiusInputsFromShape(null);
-        }
-
-        updateThicknessInputFromShape(selectedShape);
-        updateFontInputsFromShape(selectedShape);
-
-        // Update fill picker visibility based on selected shape type
-        if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
-            fillControlGroup.style.display = 'flex';
-        } else if (!selectedShape && (currentTool === 'rect' || currentTool === 'circle')) {
-            fillControlGroup.style.display = 'flex';
-        } else {
-            fillControlGroup.style.display = 'none';
-        }
-
-        if (selectedShape && selectedShape.type === 'text') {
-            thicknessControls.style.display = 'none';
-            fontControls.style.display = 'flex';
-        } else if (currentTool !== 'text') {
-            thicknessControls.style.display = 'flex';
-            fontControls.style.display = 'none';
-        }
-
         return;
     }
 
@@ -884,7 +1049,8 @@ canvas.addEventListener('mousedown', (e) => {
                     bold: currentBold,
                     italic: currentItalic,
                     underline: currentUnderline,
-                    strokeOpacity: currentStrokeOpacity
+                    strokeOpacity: currentStrokeOpacity,
+                    name: getUniqueName('text')
                 });
                 redraw();
                 saveState();
@@ -915,7 +1081,8 @@ canvas.addEventListener('mousedown', (e) => {
             points: [{ x: mouseX, y: mouseY }],
             color: currentColor,
             thickness: currentThickness,
-            strokeOpacity: currentStrokeOpacity
+            strokeOpacity: currentStrokeOpacity,
+            name: getUniqueName('pen')
         });
     } else if (currentTool === 'eraser') {
         // Eraser in shape-based system is complex if it's supposed to erase parts.
@@ -977,7 +1144,8 @@ function createShape(type, x1, y1, x2, y2) {
         strokeOpacity: currentStrokeOpacity,
         fillColor: (fillEnabled && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
         fillOpacity: (type === 'rect' || type === 'circle') ? currentFillOpacity : 1.0,
-        thickness: currentThickness
+        thickness: currentThickness,
+        name: getUniqueName(type)
     };
     switch (type) {
         case 'line':
@@ -1249,43 +1417,14 @@ document.addEventListener('keydown', (e) => {
                 selectedShape = null;
                 redraw();
                 saveState();
-                // Update UI controls
-                updateThicknessInputFromShape(null);
-                updateFontInputsFromShape(null);
-                updateRadiusInputsFromShape(null);
-                // ... existing UI updates
-
-                // Keep UI consistent with current tool
-                if (currentTool !== 'rect') radiusControls.style.display = 'none';
-                if (currentTool !== 'rect' && currentTool !== 'circle') fillControlGroup.style.display = 'none';
-                if (currentTool === 'text') {
-                    thicknessControls.style.display = 'none';
-                    fontControls.style.display = 'flex';
-                } else {
-                    thicknessControls.style.display = 'flex';
-                    fontControls.style.display = 'none';
-                }
+                updateUIForSelection(null);
             }
         }
     } else if (e.key === 'Escape') {
         if (selectedShape) {
             selectedShape = null;
+            updateUIForSelection(null);
             redraw();
-            // Update UI controls
-            updateThicknessInputFromShape(null);
-            updateFontInputsFromShape(null);
-            updateRadiusInputsFromShape(null);
-
-            // Keep UI consistent with current tool
-            if (currentTool !== 'rect') radiusControls.style.display = 'none';
-            if (currentTool !== 'rect' && currentTool !== 'circle') fillControlGroup.style.display = 'none';
-            if (currentTool === 'text') {
-                thicknessControls.style.display = 'none';
-                fontControls.style.display = 'flex';
-            } else {
-                thicknessControls.style.display = 'flex';
-                fontControls.style.display = 'none';
-            }
         }
 
         // Also close manual modal if open
@@ -1306,6 +1445,7 @@ function pasteShape() {
     if (!clipboardShape) return;
 
     const newShape = JSON.parse(JSON.stringify(clipboardShape));
+    newShape.name = getUniqueName(newShape.type);
 
     // Offset the new shape slightly to make it visible
     const offset = 20;
@@ -1332,34 +1472,7 @@ function pasteShape() {
 
     redraw();
     saveState();
-
-    // Update UI controls to reflect the new selection
-    if (newShape.type === 'rect') {
-        radiusControls.style.display = 'flex';
-        updateRadiusInputsFromShape(newShape);
-    } else {
-        radiusControls.style.display = 'none';
-    }
-
-    if (newShape.type === 'rect' || newShape.type === 'circle' || newShape.type === 'oval') {
-        fillControlGroup.style.display = 'flex';
-    } else {
-        fillControlGroup.style.display = 'none';
-    }
-
-    if (newShape.type === 'text') {
-        thicknessControls.style.display = 'none';
-        fontControls.style.display = 'flex';
-    } else {
-        thicknessControls.style.display = 'flex';
-        fontControls.style.display = 'none';
-        updateFontInputsFromShape(null); // Reset font controls if not text
-    }
-
-    updateThicknessInputFromShape(newShape);
-    if (newShape.type === 'text') {
-        updateFontInputsFromShape(newShape);
-    }
+    updateUIForSelection(newShape);
 }
 
 // User Manual Modal Logic
@@ -1389,3 +1502,4 @@ document.getElementById('btn-redo').addEventListener('click', redo);
 
 // Initial UI state for undo/redo
 updateHistoryButtons();
+updateLayersList();

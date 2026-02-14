@@ -378,6 +378,13 @@ input[type="color"]::-webkit-color-swatch {
   color: white;
 }
 
+/* Main Layout */
+.main-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
 /* Canvas Area */
 .canvas-container {
   flex: 1;
@@ -389,6 +396,27 @@ input[type="color"]::-webkit-color-swatch {
   background-color: var(--bg-app);
   background-image: radial-gradient(rgba(164, 172, 245, 0.377) 1px, transparent 1px);
   background-size: 24px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.canvas-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.canvas-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.canvas-container::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 10px;
+  border: 2px solid var(--bg-app);
+}
+
+.canvas-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-hover);
 }
 
 #editor-canvas {
@@ -396,6 +424,185 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   cursor: crosshair;
   border-radius: 4px;
+}
+
+/* Layers Sidebar */
+.layers-sidebar {
+  width: 280px;
+  background: var(--bg-toolbar);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(16px);
+  z-index: 100;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-main);
+}
+
+.layer-count {
+  background: var(--primary);
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.layers-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.layers-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layers-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layers-list::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.layers-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-hover);
+}
+
+.layer-item {
+  background: var(--bg-item);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: grab;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.layer-item:hover {
+  background: var(--bg-item-hover);
+  border-color: var(--primary);
+  transform: translateX(-2px);
+}
+
+.layer-item.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.layer-item.dragging {
+  opacity: 0.5;
+  background: var(--primary);
+  border-style: dashed;
+}
+
+.layer-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--bg-item-hover);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.layer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.layer-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-type {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.layer-item:hover .layer-actions {
+  opacity: 1;
+}
+
+.layer-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-action-btn:hover {
+  background: var(--bg-item-hover);
+  color: var(--text-main);
+}
+
+.layer-action-btn.delete:hover {
+  color: var(--danger);
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-footer small {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* Dragging visual hint */
+.layers-list .drag-over {
+  border-top: 2px solid var(--primary);
 }
 
 /* Modal Styles */
