@@ -368,8 +368,8 @@ input[type="color"]::-webkit-color-swatch {
   align-items: flex-start;
   justify-content: center;
   padding: 40px;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
+  background-color: var(--bg-app);
+  background-image: radial-gradient(rgba(164, 172, 245, 0.377) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
