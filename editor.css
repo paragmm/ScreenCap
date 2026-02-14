@@ -188,7 +188,7 @@ input[type="range"] {
 }
 
 #font-family {
-  background: var(--bg-item);
+  background: #1e293b;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: white;
@@ -197,9 +197,14 @@ input[type="range"] {
   outline: none;
 }
 
+#font-family option {
+  background: #1e293b;
+  color: white;
+}
+
 #font-size {
   width: 44px;
-  background: var(--bg-item);
+  background: #1e293b;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: white;
