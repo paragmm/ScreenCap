@@ -23,6 +23,8 @@ let currentBold = false;
 let currentItalic = false;
 let currentUnderline = false;
 let clipboardShape = null;
+let history = [[]]; // Start with an empty state
+let historyIndex = 0;
 
 // UI Control Elements
 const thicknessControls = document.getElementById('thickness-controls');
@@ -47,6 +49,56 @@ chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
         };
     }
 });
+
+function saveState() {
+    // Only save if different from current top of history
+    const currentState = JSON.stringify(shapes);
+    if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === currentState) {
+        return;
+    }
+
+    // Remove any "redo" states if we're in the middle of history
+    if (historyIndex < history.length - 1) {
+        history = history.slice(0, historyIndex + 1);
+    }
+
+    history.push(JSON.parse(currentState));
+    historyIndex++;
+
+    // Limit history size to 50 steps
+    if (history.length > 50) {
+        history.shift();
+        historyIndex--;
+    }
+    updateHistoryButtons();
+}
+
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        selectedShape = null;
+        redraw();
+        updateHistoryButtons();
+    }
+}
+
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        selectedShape = null;
+        redraw();
+        updateHistoryButtons();
+    }
+}
+
+function updateHistoryButtons() {
+    const btnUndo = document.getElementById('btn-undo');
+    const btnRedo = document.getElementById('btn-redo');
+    if (btnUndo) btnUndo.style.opacity = historyIndex > 0 ? '1' : '0.3';
+    if (btnRedo) btnRedo.style.opacity = historyIndex < history.length - 1 ? '1' : '0.3';
+}
 
 function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -556,6 +608,7 @@ document.getElementById('tool-clear').addEventListener('click', () => {
         shapes = [];
         selectedShape = null;
         redraw();
+        saveState();
     }
 });
 
@@ -779,6 +832,7 @@ canvas.addEventListener('mousedown', (e) => {
                     shapeToEdit.strokeOpacity = currentStrokeOpacity;
                     shapes.push(shapeToEdit);
                     redraw();
+                    saveState();
                 }
                 input.remove();
             };
@@ -833,6 +887,7 @@ canvas.addEventListener('mousedown', (e) => {
                     strokeOpacity: currentStrokeOpacity
                 });
                 redraw();
+                saveState();
             }
             input.remove();
         };
@@ -1093,6 +1148,10 @@ canvas.addEventListener('mouseup', (e) => {
         shapes.push(createShape(currentTool, startX, startY, currentX, currentY));
     }
 
+    if (isDrawing || isResizing) {
+        saveState();
+    }
+
     isDrawing = false;
     isResizing = false;
     activeHandle = null;
@@ -1172,6 +1231,12 @@ document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
         e.preventDefault();
         copyToClipboard();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undo();
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+        e.preventDefault();
+        redo();
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         copyShape();
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
@@ -1183,10 +1248,12 @@ document.addEventListener('keydown', (e) => {
                 shapes.splice(index, 1);
                 selectedShape = null;
                 redraw();
+                saveState();
                 // Update UI controls
                 updateThicknessInputFromShape(null);
                 updateFontInputsFromShape(null);
                 updateRadiusInputsFromShape(null);
+                // ... existing UI updates
 
                 // Keep UI consistent with current tool
                 if (currentTool !== 'rect') radiusControls.style.display = 'none';
@@ -1261,15 +1328,10 @@ function pasteShape() {
     selectedShape = newShape;
 
     // Update the clipboard shape to the new one so subsequent pastes continue to offset
-    // Actually, common behavior:
-    // - Copy A -> Paste -> A' (offset)
-    // - Paste again -> A'' (offset from A'?) or A'' (offset from A)?
-    // Usually paste uses the clipboard content. If we update clipboardShape, then consecutive pastes will cascade.
-    // If we DON'T update clipboardShape, consecutive pastes will stack on top of each other (bad).
-    // So updating clipboardShape is good for cascading.
     clipboardShape = JSON.parse(JSON.stringify(newShape));
 
     redraw();
+    saveState();
 
     // Update UI controls to reflect the new selection
     if (newShape.type === 'rect') {
@@ -1321,3 +1383,9 @@ if (manualBtn && manualModal && closeManual) {
         }
     });
 }
+
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+
+// Initial UI state for undo/redo
+updateHistoryButtons();
