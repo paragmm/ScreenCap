@@ -9,13 +9,13 @@
     :root {
       --primary: #6366f1;
       --primary-hover: #4f46e5;
-      --primary-glow: rgba(99, 102, 241, 0.2);
-      --bg-light: #ffffff;
-      --bg-card: rgba(255, 255, 255, 0.8);
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --glass: rgba(0, 0, 0, 0.02);
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --bg-light: #0f172a;
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --glass: rgba(255, 255, 255, 0.05);
     }
 
     body {
@@ -30,7 +30,7 @@
 
     .container {
       padding: 16px;
-      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent);
+      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent);
     }
 
     .header {
@@ -79,12 +79,13 @@
       border: 1px solid var(--border);
       border-radius: 15px;
       background: var(--bg-card);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       text-align: left;
       overflow: hidden;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      color: var(--text-main);
     }
 
     .btn::before {
@@ -98,9 +99,9 @@
 
     .btn:hover {
       border-color: var(--primary);
-      background: #ffffff;
+      background: rgba(30, 41, 59, 0.9);
       transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 0 10px var(--primary-glow);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2), 0 0 15px var(--primary-glow);
     }
 
     .btn:hover::before {
