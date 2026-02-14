@@ -248,6 +248,42 @@ function updateLayersList() {
             redraw();
         });
 
+        item.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            const nameEl = item.querySelector('.layer-name');
+            const currentName = shape.name;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'layer-name-input';
+            input.value = currentName;
+
+            nameEl.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let isRenaming = true;
+            const finishRename = () => {
+                if (!isRenaming) return;
+                isRenaming = false;
+                const newName = input.value.trim() || currentName;
+                shape.name = newName;
+                updateLayersList();
+                saveState();
+            };
+
+            input.addEventListener('blur', finishRename);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    finishRename();
+                } else if (e.key === 'Escape') {
+                    input.value = currentName;
+                    isRenaming = false; // Prevent redundant call via blur
+                    updateLayersList(); // Just restore the UI
+                }
+            });
+        });
+
         item.querySelector('.delete').addEventListener('click', (e) => {
             e.stopPropagation();
             shapes.splice(index, 1);

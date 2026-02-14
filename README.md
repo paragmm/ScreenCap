@@ -29,6 +29,7 @@ A full-featured toolbar with glassmorphism aesthetics and precise controls:
 - **Layer Management System**:
   - **Dynamic Layer List**: View all shapes and text with unique, automatically generated names.
   - **Drag-and-Drop Reordering**: Change the Z-index of elements by simply reordering them in the sidebar.
+  - **In-place Renaming**: **Double-click** any layer item to rename it for better organization.
   - **Quick Selection & Deletion**: Instantly select or remove any object directly from the layers panel index.
 
 ### ⚙️ Precision Controls

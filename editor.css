@@ -638,6 +638,19 @@ input[type="color"]::-webkit-color-swatch {
   text-overflow: ellipsis;
 }
 
+.layer-name-input {
+  background: var(--bg-item-hover);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  padding: 2px 4px;
+  outline: none;
+  margin: -3px -5px;
+}
+
 .layer-type {
   font-size: 10px;
   color: var(--text-muted);
