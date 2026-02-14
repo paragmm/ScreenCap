@@ -68,8 +68,8 @@ function redraw() {
 }
 
 function drawShape(shape) {
-    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0);
-    ctx.fillStyle = hexToRGBA(shape.fillColor, shape.fillOpacity || 1.0);
+    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0);
+    ctx.fillStyle = hexToRGBA(shape.fillColor, shape.fillOpacity ?? 1.0);
     ctx.lineWidth = shape.thickness || 3;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -138,7 +138,7 @@ function drawShape(shape) {
             const fontWeight = shape.bold ? 'bold' : 'normal';
             const fontStyle = shape.italic ? 'italic' : 'normal';
             ctx.font = `${fontStyle} ${fontWeight} ${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
-            ctx.fillStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0); // Use shape.color for text
+            ctx.fillStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0); // Use shape.color for text
             ctx.textBaseline = 'top';
             const lines = shape.text.split('\n');
             const lineHeight = (shape.fontSize || 20) * 1.2;
@@ -150,7 +150,7 @@ function drawShape(shape) {
                 if (shape.underline) {
                     const metrics = ctx.measureText(line);
                     ctx.beginPath();
-                    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity || 1.0); // Also ensure stroke color for underline
+                    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0); // Also ensure stroke color for underline
                     ctx.lineWidth = Math.max(1, (shape.fontSize || 20) / 15);
                     ctx.moveTo(lx, ly + (shape.fontSize || 20));
                     ctx.lineTo(lx + metrics.width, ly + (shape.fontSize || 20));
@@ -776,6 +776,7 @@ canvas.addEventListener('mousedown', (e) => {
                     shapeToEdit.bold = currentBold;
                     shapeToEdit.italic = currentItalic;
                     shapeToEdit.underline = currentUnderline;
+                    shapeToEdit.strokeOpacity = currentStrokeOpacity;
                     shapes.push(shapeToEdit);
                     redraw();
                 }
@@ -828,7 +829,8 @@ canvas.addEventListener('mousedown', (e) => {
                     fontFamily: currentFontFamily,
                     bold: currentBold,
                     italic: currentItalic,
-                    underline: currentUnderline
+                    underline: currentUnderline,
+                    strokeOpacity: currentStrokeOpacity
                 });
                 redraw();
             }
@@ -857,7 +859,8 @@ canvas.addEventListener('mousedown', (e) => {
             type: 'pen',
             points: [{ x: mouseX, y: mouseY }],
             color: currentColor,
-            thickness: currentThickness
+            thickness: currentThickness,
+            strokeOpacity: currentStrokeOpacity
         });
     } else if (currentTool === 'eraser') {
         // Eraser in shape-based system is complex if it's supposed to erase parts.
