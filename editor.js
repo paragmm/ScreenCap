@@ -1118,6 +1118,41 @@ document.getElementById('save-btn').addEventListener('click', () => {
     redraw();
 });
 
+async function copyToClipboard() {
+    // Temporarily deselect to avoid handles in screenshot
+    const tempSelectedShape = selectedShape;
+    selectedShape = null;
+    redraw();
+
+    canvas.toBlob(async (blob) => {
+        try {
+            const data = [new ClipboardItem({ 'image/png': blob })];
+            await navigator.clipboard.write(data);
+
+            // Success feedback
+            const btn = document.getElementById('copy-clipboard-btn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = `
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="#10b981" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+            alert('Failed to copy image to clipboard.');
+        } finally {
+            // Restore selection
+            selectedShape = tempSelectedShape;
+            redraw();
+        }
+    }, 'image/png');
+}
+
+document.getElementById('copy-clipboard-btn').addEventListener('click', copyToClipboard);
+
 document.getElementById('discard-btn').addEventListener('click', () => {
     if (confirm('Discard this screenshot?')) {
         window.close();
@@ -1131,7 +1166,10 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+        e.preventDefault();
+        copyToClipboard();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         copyShape();
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         pasteShape();
