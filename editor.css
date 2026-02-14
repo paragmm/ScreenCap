@@ -187,6 +187,19 @@ input[type="range"] {
   outline: none;
 }
 
+.radius-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#radius-sync {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 #font-family {
   background: #1e293b;
   border: 1px solid var(--border);

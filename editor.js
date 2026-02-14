@@ -388,19 +388,27 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
 function updateRadiusInputsFromShape(shape) {
     const tl = document.getElementById('radius-tl');
     const tr = document.getElementById('radius-tr');
-    const br = document.getElementById('radius-br');
     const bl = document.getElementById('radius-bl');
+    const br = document.getElementById('radius-br');
+    const sync = document.getElementById('radius-sync');
 
     if (shape && shape.type === 'rect' && shape.borderRadius) {
         tl.value = shape.borderRadius.tl || 0;
         tr.value = shape.borderRadius.tr || 0;
-        br.value = shape.borderRadius.br || 0;
         bl.value = shape.borderRadius.bl || 0;
+        br.value = shape.borderRadius.br || 0;
+
+        // Check if all are same to keep sync checked
+        const allSame = shape.borderRadius.tl === shape.borderRadius.tr &&
+            shape.borderRadius.tl === shape.borderRadius.bl &&
+            shape.borderRadius.tl === shape.borderRadius.br;
+        sync.checked = allSame;
     } else {
         tl.value = 0;
         tr.value = 0;
-        br.value = 0;
         bl.value = 0;
+        br.value = 0;
+        sync.checked = true;
     }
 }
 
@@ -506,15 +514,41 @@ function updateFontInputsFromShape(shape) {
 });
 
 // Update selected shape when radius inputs change
-['tl', 'tr', 'br', 'bl'].forEach(pos => {
+const radiusSync = document.getElementById('radius-sync');
+['tl', 'tr', 'bl', 'br'].forEach(pos => {
     document.getElementById(`radius-${pos}`).addEventListener('input', (e) => {
         const val = parseInt(e.target.value) || 0;
-        if (selectedShape && selectedShape.type === 'rect') {
-            if (!selectedShape.borderRadius) selectedShape.borderRadius = {};
-            selectedShape.borderRadius[pos] = val;
-            redraw();
+
+        if (radiusSync.checked) {
+            ['tl', 'tr', 'bl', 'br'].forEach(p => {
+                document.getElementById(`radius-${p}`).value = val;
+                if (selectedShape && selectedShape.type === 'rect') {
+                    if (!selectedShape.borderRadius) selectedShape.borderRadius = {};
+                    selectedShape.borderRadius[p] = val;
+                }
+            });
+        } else {
+            if (selectedShape && selectedShape.type === 'rect') {
+                if (!selectedShape.borderRadius) selectedShape.borderRadius = {};
+                selectedShape.borderRadius[pos] = val;
+            }
         }
+        redraw();
     });
+});
+
+radiusSync.addEventListener('change', () => {
+    if (radiusSync.checked) {
+        const tlVal = parseInt(document.getElementById('radius-tl').value) || 0;
+        ['tr', 'bl', 'br'].forEach(p => {
+            document.getElementById(`radius-${p}`).value = tlVal;
+            if (selectedShape && selectedShape.type === 'rect') {
+                if (!selectedShape.borderRadius) selectedShape.borderRadius = {};
+                selectedShape.borderRadius[p] = tlVal;
+            }
+        });
+        redraw();
+    }
 });
 
 document.getElementById('tool-clear').addEventListener('click', () => {
