@@ -118,6 +118,9 @@ function drawShape(shape) {
             break;
         case 'oval':
             ctx.ellipse(shape.x, shape.y, shape.rx, shape.ry, 0, 0, 2 * Math.PI);
+            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
+                ctx.fill();
+            }
             ctx.stroke();
             break;
         case 'arrow':
@@ -547,7 +550,7 @@ document.getElementById('fill-opacity').addEventListener('input', (e) => {
     const val = parseInt(e.target.value) / 100;
     currentFillOpacity = val;
     document.getElementById('fill-opacity-val').innerText = `${e.target.value}%`;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
         selectedShape.fillOpacity = val;
         redraw();
     }
@@ -563,7 +566,7 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
 
 document.getElementById('fill-color-picker').addEventListener('input', (e) => {
     currentFillColor = e.target.value;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle') && document.getElementById('fill-enabled').checked) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval') && document.getElementById('fill-enabled').checked) {
         selectedShape.fillColor = currentFillColor;
         redraw();
     }
@@ -571,7 +574,7 @@ document.getElementById('fill-color-picker').addEventListener('input', (e) => {
 
 document.getElementById('fill-enabled').addEventListener('change', (e) => {
     isFillEnabled = e.target.checked;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
         selectedShape.fillColor = isFillEnabled ? currentFillColor : '#ffffff00';
         redraw();
     }
@@ -652,7 +655,7 @@ canvas.addEventListener('mousedown', (e) => {
         updateFontInputsFromShape(selectedShape);
 
         // Update fill picker visibility based on selected shape type
-        if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle')) {
+        if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
             fillControlGroup.style.display = 'flex';
         } else if (!selectedShape && (currentTool === 'rect' || currentTool === 'circle')) {
             fillControlGroup.style.display = 'flex';
@@ -1139,7 +1142,7 @@ function pasteShape() {
         radiusControls.style.display = 'none';
     }
 
-    if (newShape.type === 'rect' || newShape.type === 'circle') {
+    if (newShape.type === 'rect' || newShape.type === 'circle' || newShape.type === 'oval') {
         fillControlGroup.style.display = 'flex';
     } else {
         fillControlGroup.style.display = 'none';

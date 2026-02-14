@@ -452,19 +452,121 @@ input[type="color"]::-webkit-color-swatch {
   line-height: 1.6;
 }
 
+.modal-body section {
+  margin-bottom: 32px;
+}
+
+.modal-body section:last-child {
+  margin-bottom: 0;
+}
+
 .modal-body h3 {
   color: var(--text-main);
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
 }
 
 .modal-body p {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modal-body strong {
   color: var(--primary);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.shortcut-item {
+  background: var(--bg-item);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shortcut-item span {
+  background: var(--bg-item-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: center;
+}
+
+.author-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.author-info span {
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.05em;
+}
+
+.tool-manual-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tool-manual-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.tool-icon-preview {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-item);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.tool-icon-preview.danger {
+  color: var(--danger);
+}
+
+.tool-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.tool-desc strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
 }
 
 @keyframes fadeIn {

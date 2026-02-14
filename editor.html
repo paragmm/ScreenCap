@@ -11,7 +11,7 @@
 <body>
     <div class="toolbar">
         <div class="toolbar-left">
-            <div class="logo">ScreenCap <span>Editor</span> <small class="author">by Parag DHali</small></div>
+            <div class="logo">ScreenCap <span>Editor</span> <small class="author">by Parag Dhali</small></div>
         </div>
 
         <div class="toolbar-center">
@@ -176,23 +176,169 @@
                 <button id="close-manual" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <h3>Basic Tools</h3>
-                <p><strong>Select:</strong> Select and move shapes or text on the canvas. Drag handles to resize.</p>
-                <p><strong>Pen:</strong> Freehand drawing tool for sketches.</p>
-                <p><strong>Eraser:</strong> Click on shapes or drawings to remove them.</p>
-                <p><strong>Line/Arrow:</strong> Draw straight lines or guided arrows.</p>
-                <p><strong>Rectangle/Circle:</strong> Draw geometric shapes. Customize corners for rectangles.</p>
-                <p><strong>Text:</strong> Click anywhere to add text. Use the styling toolbar to format.</p>
+                <section>
+                    <h3><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
+                            fill="none" style="vertical-align: middle; margin-right: 10px;">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                        </svg>Tool Reference</h3>
+                    <div class="tool-manual-list">
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+                                    <path d="M13 13l6 6"></path>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Select:</strong> The default tool. Click any shape to select it. Drag to move,
+                                or use the corner handles to resize. Drag over text to edit it.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                    <path d="M2 2l5 5"></path>
+                                    <path d="M11 11l1 1"></path>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Pen:</strong> Freehand sketching. Great for quick circles, underlining, or
+                                custom marks. Responds to the <strong>Thickness</strong> slider.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M20 20H7L3 16C2 15 2 13 3 12L13 2C14 1 16 1 17 2L21 6C22 7 22 9 21 10L11 20">
+                                    </path>
+                                    <line x1="17" y1="11" x2="12" y2="16"></line>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Eraser:</strong> Precision removal. Click directly on any line, shape, or text
+                                box to delete it instantly.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Line:</strong> Draw perfectly straight lines. Useful for dividing sections or
+                                striking through content.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="19" x2="19" y2="5"></line>
+                                    <polyline points="12 5 19 5 19 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Arrow:</strong> Direct attention to specific elements. The arrowhead
+                                automatically aligns with the direction of your drag.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Rectangle:</strong> Draw boxes. Once drawn, use the <strong>Radius</strong>
+                                inputs to create rounded corners or semi-circles.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Circle:</strong> Create smooth circles. Like rectangles, circles can be filled
+                                or kept as outlines.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Text:</strong> Add professional typography. Click anywhere to start typing. Use
+                                the font toolbar to change size, alignment, and weight.
+                            </div>
+                        </div>
+                        <div class="tool-manual-item">
+                            <div class="tool-icon-preview danger">
+                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 20 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </div>
+                            <div class="tool-desc">
+                                <strong>Clear All:</strong> Reset your workspace. This permanently removes all drawings
+                                and annotations from the current image.
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-                <h3>Configuration</h3>
-                <p>Use the sliders to adjust <strong>line thickness</strong> and <strong>opacity</strong>.</p>
-                <p>Change <strong>stroke</strong> and <strong>fill</strong> colors using the color pickers. Toggle fill
-                    for shapes.</p>
+                <section>
+                    <h3><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                            fill="none" style="vertical-align: middle; margin-right: 8px;">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>Customization</h3>
+                    <p><strong>Styling:</strong> Use the top configuration bar to change stroke thickness, opacity, and
+                        colors. For Rectangles, you can even specify <strong>individual corner radii</strong>.</p>
+                    <p><strong>Fills:</strong> Toggle the fill checkbox to add solid or semi-transparent backgrounds to
+                        your shapes.</p>
+                </section>
 
-                <h3>Actions</h3>
-                <p><strong>Clear All:</strong> Clear all annotations from the current canvas.</p>
-                <p><strong>Discard:</strong> Exit the editor without saving changes.</p>
-                <p><strong>Save Image:</strong> Export your final masterpiece to your computer.</p>
+                <section>
+                    <h3><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                            fill="none" style="vertical-align: middle; margin-right: 8px;">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>Keyboard Shortcuts</h3>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item"><span>Ctrl + C</span> Copy Shape</div>
+                        <div class="shortcut-item"><span>Ctrl + V</span> Paste Shape</div>
+                        <div class="shortcut-item"><span>Del / Backspace</span> Delete Shape</div>
+                        <div class="shortcut-item"><span>Esc</span> Deselect / Close</div>
+                    </div>
+                </section>
+            </div>
+            <div class="modal-footer">
+                <div class="author-info">
+                    Developed with ❤️ by <span>Parag Dhali</span>
+                </div>
             </div>
         </div>
     </div>
