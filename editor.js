@@ -227,7 +227,7 @@ function updateLayersList() {
         item.draggable = true;
 
         item.innerHTML = `
-            <div class="layer-icon">${getLayerIcon(shape.type)}</div>
+            <div class="layer-icon">${getLayerIcon(shape)}</div>
             <div class="layer-info">
                 <div class="layer-name">${shape.name}</div>
                 <div class="layer-type">${shape.type}</div>
@@ -267,15 +267,25 @@ function updateLayersList() {
     });
 }
 
-function getLayerIcon(type) {
+function getLayerIcon(shape) {
+    const type = shape.type;
+    const stroke = shape.color || 'currentColor';
+    const fill = (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') ? shape.fillColor : 'none';
+    const fillOpacity = shape.fillOpacity !== undefined ? shape.fillOpacity : 1.0;
+    const strokeOpacity = shape.strokeOpacity !== undefined ? shape.strokeOpacity : 1.0;
+
+    // Convert hex to rgba for the SVG to respect opacity
+    const strokeRGBA = stroke.startsWith('#') ? hexToRGBA(stroke, strokeOpacity) : stroke;
+    const fillRGBA = fill.startsWith('#') ? hexToRGBA(fill, fillOpacity) : fill;
+
     switch (type) {
-        case 'line': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-        case 'rect': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
-        case 'circle': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="10"></circle></svg>';
-        case 'oval': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><ellipse cx="12" cy="12" rx="10" ry="6"></ellipse></svg>';
-        case 'arrow': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg>';
-        case 'pen': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>';
-        case 'text': return '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>';
+        case 'line': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+        case 'rect': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>`;
+        case 'circle': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><circle cx="12" cy="12" r="10"></circle></svg>`;
+        case 'oval': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><ellipse cx="12" cy="12" rx="10" ry="6"></ellipse></svg>`;
+        case 'arrow': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${strokeRGBA}"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg>`;
+        case 'pen': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>`;
+        case 'text': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`;
         default: return '';
     }
 }
@@ -836,6 +846,7 @@ document.getElementById('stroke-opacity').addEventListener('input', (e) => {
     if (selectedShape) {
         selectedShape.strokeOpacity = val;
         redraw();
+        updateLayersList();
     }
 });
 
@@ -846,6 +857,7 @@ document.getElementById('fill-opacity').addEventListener('input', (e) => {
     if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
         selectedShape.fillOpacity = val;
         redraw();
+        updateLayersList();
     }
 });
 
@@ -854,6 +866,7 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
     if (selectedShape) {
         selectedShape.color = currentColor;
         redraw();
+        updateLayersList();
     }
 });
 
@@ -862,6 +875,7 @@ document.getElementById('fill-color-picker').addEventListener('input', (e) => {
     if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval') && document.getElementById('fill-enabled').checked) {
         selectedShape.fillColor = currentFillColor;
         redraw();
+        updateLayersList();
     }
 });
 
@@ -870,6 +884,7 @@ document.getElementById('fill-enabled').addEventListener('change', (e) => {
     if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
         selectedShape.fillColor = isFillEnabled ? currentFillColor : '#ffffff00';
         redraw();
+        updateLayersList();
     }
 });
 
