@@ -996,10 +996,12 @@ canvas.addEventListener('mousedown', (e) => {
                     shapeToEdit.underline = currentUnderline;
                     shapeToEdit.strokeOpacity = currentStrokeOpacity;
                     shapes.push(shapeToEdit);
-                    redraw();
-                    saveState();
+                    selectedShape = shapeToEdit;
                 }
                 input.remove();
+                redraw();
+                saveState();
+                updateUIForSelection(selectedShape);
             };
 
             input.addEventListener('blur', handleFinish);
@@ -1038,10 +1040,10 @@ canvas.addEventListener('mousedown', (e) => {
             if (isCancelled) return;
             const text = input.innerText.trim();
             if (text) {
-                shapes.push({
+                const newShape = {
                     type: 'text',
-                    x: mouseX + 5, // Account for padding (4px) + border (1px)
-                    y: mouseY + 5,
+                    x: mouseX,
+                    y: mouseY,
                     text: text,
                     color: currentColor,
                     fontSize: currentFontSize,
@@ -1051,11 +1053,14 @@ canvas.addEventListener('mousedown', (e) => {
                     underline: currentUnderline,
                     strokeOpacity: currentStrokeOpacity,
                     name: getUniqueName('text')
-                });
-                redraw();
-                saveState();
+                };
+                shapes.push(newShape);
+                selectedShape = newShape;
             }
             input.remove();
+            redraw();
+            saveState();
+            updateUIForSelection(selectedShape);
         };
 
         input.addEventListener('blur', handleFinish);
