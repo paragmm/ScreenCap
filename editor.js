@@ -730,7 +730,9 @@ canvas.addEventListener('mousedown', (e) => {
                 selection.addRange(range);
             }, 0);
 
+            let isCancelled = false;
             const handleFinish = () => {
+                if (isCancelled) return;
                 const text = input.innerText.trim();
                 if (text) {
                     shapeToEdit.text = text;
@@ -751,6 +753,11 @@ canvas.addEventListener('mousedown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     input.blur();
+                } else if (e.key === 'Escape') {
+                    isCancelled = true;
+                    shapes.push(shapeToEdit);
+                    input.remove();
+                    redraw();
                 }
             });
             return;
@@ -772,7 +779,9 @@ canvas.addEventListener('mousedown', (e) => {
 
         setTimeout(() => input.focus(), 0);
 
+        let isCancelled = false;
         const handleFinish = () => {
+            if (isCancelled) return;
             const text = input.innerText.trim();
             if (text) {
                 shapes.push({
@@ -797,6 +806,9 @@ canvas.addEventListener('mousedown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 input.blur();
+            } else if (e.key === 'Escape') {
+                isCancelled = true;
+                input.remove();
             }
         });
         return;
@@ -1089,6 +1101,56 @@ document.addEventListener('keydown', (e) => {
         copyShape();
     } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         pasteShape();
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedShape) {
+            const index = shapes.indexOf(selectedShape);
+            if (index !== -1) {
+                shapes.splice(index, 1);
+                selectedShape = null;
+                redraw();
+                // Update UI controls
+                updateThicknessInputFromShape(null);
+                updateFontInputsFromShape(null);
+                updateRadiusInputsFromShape(null);
+
+                // Keep UI consistent with current tool
+                if (currentTool !== 'rect') radiusControls.style.display = 'none';
+                if (currentTool !== 'rect' && currentTool !== 'circle') fillControlGroup.style.display = 'none';
+                if (currentTool === 'text') {
+                    thicknessControls.style.display = 'none';
+                    fontControls.style.display = 'flex';
+                } else {
+                    thicknessControls.style.display = 'flex';
+                    fontControls.style.display = 'none';
+                }
+            }
+        }
+    } else if (e.key === 'Escape') {
+        if (selectedShape) {
+            selectedShape = null;
+            redraw();
+            // Update UI controls
+            updateThicknessInputFromShape(null);
+            updateFontInputsFromShape(null);
+            updateRadiusInputsFromShape(null);
+
+            // Keep UI consistent with current tool
+            if (currentTool !== 'rect') radiusControls.style.display = 'none';
+            if (currentTool !== 'rect' && currentTool !== 'circle') fillControlGroup.style.display = 'none';
+            if (currentTool === 'text') {
+                thicknessControls.style.display = 'none';
+                fontControls.style.display = 'flex';
+            } else {
+                thicknessControls.style.display = 'flex';
+                fontControls.style.display = 'none';
+            }
+        }
+
+        // Also close manual modal if open
+        const manualModal = document.getElementById('manual-modal');
+        if (manualModal && manualModal.style.display === 'flex') {
+            manualModal.style.display = 'none';
+        }
     }
 });
 
