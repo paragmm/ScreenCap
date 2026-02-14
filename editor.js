@@ -1159,3 +1159,25 @@ function pasteShape() {
         updateFontInputsFromShape(newShape);
     }
 }
+
+// User Manual Modal Logic
+const manualBtn = document.getElementById('manual-btn');
+const manualModal = document.getElementById('manual-modal');
+const closeManual = document.getElementById('close-manual');
+
+if (manualBtn && manualModal && closeManual) {
+    manualBtn.addEventListener('click', () => {
+        manualModal.style.display = 'flex';
+    });
+
+    closeManual.addEventListener('click', () => {
+        manualModal.style.display = 'none';
+    });
+
+    // Close on outside click
+    manualModal.addEventListener('click', (e) => {
+        if (e.target === manualModal) {
+            manualModal.style.display = 'none';
+        }
+    });
+}
