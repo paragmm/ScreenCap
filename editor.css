@@ -389,14 +389,13 @@ input[type="color"]::-webkit-color-swatch {
 .text-input {
   position: absolute;
   padding: 8px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 2px dashed var(--primary);
-  color: white;
+  background: transparent;
+  border: 2px dotted var(--primary);
+  color: var(--primary);
   outline: none;
   min-width: 50px;
   z-index: 1000;
   white-space: pre-wrap;
   word-wrap: break-word;
-  backdrop-filter: blur(8px);
   border-radius: 4px;
 }
