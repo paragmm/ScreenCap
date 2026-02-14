@@ -39,7 +39,9 @@ let typeCounters = {
 function getUniqueName(type) {
     if (!typeCounters[type]) typeCounters[type] = 0;
     typeCounters[type]++;
-    return type.charAt(0).toUpperCase() + type.slice(1) + ' ' + typeCounters[type];
+    let label = type.charAt(0).toUpperCase() + type.slice(1);
+    if (type === 'rect') label = 'Rectangle';
+    return label + ' ' + typeCounters[type];
 }
 
 // UI Control Elements
@@ -800,8 +802,11 @@ document.getElementById('tool-clear').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all shapes?')) {
         shapes = [];
         selectedShape = null;
+        // Reset counters
+        Object.keys(typeCounters).forEach(key => typeCounters[key] = 0);
         redraw();
         saveState();
+        updateLayersList();
     }
 });
 
@@ -1135,13 +1140,13 @@ canvas.addEventListener('mousemove', (e) => {
         redraw();
     } else if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
         redraw();
-        // Draw the shape being created (not yet in shapes array)
-        const tempShape = createShape(currentTool, startX, startY, currentX, currentY);
+        // Draw the shape being created (not yet in shapes array) - passing true for isPreview
+        const tempShape = createShape(currentTool, startX, startY, currentX, currentY, true);
         drawShape(tempShape);
     }
 });
 
-function createShape(type, x1, y1, x2, y2) {
+function createShape(type, x1, y1, x2, y2, isPreview = false) {
     const fillEnabled = document.getElementById('fill-enabled').checked;
     const shape = {
         type,
@@ -1150,7 +1155,7 @@ function createShape(type, x1, y1, x2, y2) {
         fillColor: (fillEnabled && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
         fillOpacity: (type === 'rect' || type === 'circle') ? currentFillOpacity : 1.0,
         thickness: currentThickness,
-        name: getUniqueName(type)
+        name: isPreview ? '' : getUniqueName(type)
     };
     switch (type) {
         case 'line':
@@ -1318,7 +1323,7 @@ canvas.addEventListener('mouseup', (e) => {
     const currentY = e.clientY - rect.top;
 
     if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
-        shapes.push(createShape(currentTool, startX, startY, currentX, currentY));
+        shapes.push(createShape(currentTool, startX, startY, currentX, currentY, false));
     }
 
     if (isDrawing || isResizing) {
