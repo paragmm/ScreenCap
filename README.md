@@ -26,6 +26,10 @@ A full-featured toolbar with glassmorphism aesthetics and precise controls:
   - Variety of fonts (Inter, Arial, Georgia, Monospace).
   - Advanced styling: **Bold**, *Italic*, and <u>Underline</u>.
   - Granular font sizing and real-time preview.
+- **Layer Management System**:
+  - **Dynamic Layer List**: View all shapes and text with unique, automatically generated names.
+  - **Drag-and-Drop Reordering**: Change the Z-index of elements by simply reordering them in the sidebar.
+  - **Quick Selection & Deletion**: Instantly select or remove any object directly from the layers panel index.
 
 ### ⚙️ Precision Controls
 - **Smart Sizing**: Adjustable line thickness from 1px to 20px.
