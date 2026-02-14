@@ -49,6 +49,8 @@ const thicknessControls = document.getElementById('thickness-controls');
 const fontControls = document.getElementById('font-controls');
 const fillControlGroup = document.getElementById('fill-control-group');
 const radiusControls = document.getElementById('radius-controls');
+const layersSidebar = document.getElementById('layers-sidebar');
+const toggleSidebarBtn = document.getElementById('toggle-sidebar');
 
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
@@ -89,6 +91,12 @@ function saveState() {
         history.shift();
         historyIndex--;
     }
+
+    // Auto-expand sidebar when a shape is added/modified
+    if (layersSidebar && layersSidebar.classList.contains('collapsed')) {
+        layersSidebar.classList.remove('collapsed');
+    }
+
     updateHistoryButtons();
     updateLayersList();
 }
@@ -1513,3 +1521,10 @@ document.getElementById('btn-redo').addEventListener('click', redo);
 // Initial UI state for undo/redo
 updateHistoryButtons();
 updateLayersList();
+
+// Sidebar toggle logic
+if (toggleSidebarBtn && layersSidebar) {
+    toggleSidebarBtn.addEventListener('click', () => {
+        layersSidebar.classList.toggle('collapsed');
+    });
+}

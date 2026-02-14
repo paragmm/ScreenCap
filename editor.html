@@ -202,10 +202,22 @@
         <div class="canvas-container">
             <canvas id="editor-canvas"></canvas>
         </div>
-        <div class="layers-sidebar" id="layers-sidebar">
+        <div class="layers-sidebar collapsed" id="layers-sidebar">
             <div class="sidebar-header">
+                <div class="collapsed-icon" title="Layers">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                        <polyline points="17 21 17 3 7 3 7 21"></polyline>
+                    </svg>
+                </div>
                 <h3>Layers</h3>
                 <span class="layer-count" id="count-badge">0</span>
+                <button class="toggle-sidebar-btn" id="toggle-sidebar" title="Toggle Sidebar">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <polyline points="13 17 8 12 13 7"></polyline>
+                        <polyline points="20 17 15 12 20 7"></polyline>
+                    </svg>
+                </button>
             </div>
             <div class="layers-list" id="layers-list">
                 <!-- Layers will be injected here -->
