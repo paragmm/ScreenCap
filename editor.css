@@ -450,6 +450,26 @@ input[type="color"]::-webkit-color-swatch {
   overflow-y: auto;
   color: var(--text-muted);
   line-height: 1.6;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background-color: var(--primary);
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-hover);
 }
 
 .modal-body section {
