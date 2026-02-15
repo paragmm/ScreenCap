@@ -38,3 +38,17 @@ export function drawCropOverlay(ctx, selection, canvasWidth, canvasHeight) {
         ctx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
     });
 }
+
+export function getCropHandles(selection, handleSize = 8) {
+    if (!selection) return {};
+    return {
+        nw: { x: selection.x, y: selection.y, cursor: 'nw-resize' },
+        n: { x: selection.x + selection.w / 2, y: selection.y, cursor: 'n-resize' },
+        ne: { x: selection.x + selection.w, y: selection.y, cursor: 'ne-resize' },
+        w: { x: selection.x, y: selection.y + selection.h / 2, cursor: 'w-resize' },
+        e: { x: selection.x + selection.w, y: selection.y + selection.h / 2, cursor: 'e-resize' },
+        sw: { x: selection.x, y: selection.y + selection.h, cursor: 'sw-resize' },
+        s: { x: selection.x + selection.w / 2, y: selection.y + selection.h, cursor: 's-resize' },
+        se: { x: selection.x + selection.w, y: selection.y + selection.h, cursor: 'se-resize' }
+    };
+}

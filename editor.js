@@ -2,7 +2,7 @@ import { hexToRGBA, getShapeBounds, isPointInShape } from './js/utils.js';
 import { drawPen, resizePen } from './js/tools/pen.js';
 import { drawShape as drawShapeInternal, resizeRect, resizeOval, resizeLine } from './js/tools/shapes.js';
 import { drawText, resizeText } from './js/tools/text.js';
-import { drawCropOverlay as drawCropOverlayInternal } from './js/tools/crop.js';
+import { drawCropOverlay as drawCropOverlayInternal, getCropHandles } from './js/tools/crop.js';
 import { drawSelectionHighlight as drawSelectionHighlightInternal, getResizeHandles } from './js/tools/select.js';
 
 const canvas = document.getElementById('editor-canvas');
@@ -453,8 +453,24 @@ function updateCursor(mouseX, mouseY) {
             canvas.style.cursor = '';
             canvas.classList.remove('eraser-cursor');
         }
+    } else if (currentTool === 'crop' && cropSelection) {
+        const handles = getCropHandles(cropSelection, RESIZE_HANDLE_SIZE);
+        let foundHandle = null;
+        for (const [type, h] of Object.entries(handles)) {
+            if (mouseX >= h.x - RESIZE_HANDLE_SIZE / 2 && mouseX <= h.x + RESIZE_HANDLE_SIZE / 2 &&
+                mouseY >= h.y - RESIZE_HANDLE_SIZE / 2 && mouseY <= h.y + RESIZE_HANDLE_SIZE / 2) {
+                foundHandle = h;
+                break;
+            }
+        }
+        if (foundHandle) {
+            canvas.style.cursor = foundHandle.cursor;
+        } else {
+            canvas.style.cursor = 'crosshair';
+        }
+        canvas.classList.remove('eraser-cursor');
     } else {
-        canvas.style.cursor = '';
+        canvas.style.cursor = (currentTool === 'crop') ? 'crosshair' : '';
         canvas.classList.remove('eraser-cursor');
     }
 }
@@ -977,6 +993,22 @@ canvas.addEventListener('mousedown', (e) => {
     }
 
     if (currentTool === 'crop') {
+        if (cropSelection) {
+            const handles = getCropHandles(cropSelection, RESIZE_HANDLE_SIZE);
+            for (const [type, h] of Object.entries(handles)) {
+                if (mouseX >= h.x - RESIZE_HANDLE_SIZE / 2 && mouseX <= h.x + RESIZE_HANDLE_SIZE / 2 &&
+                    mouseY >= h.y - RESIZE_HANDLE_SIZE / 2 && mouseY <= h.y + RESIZE_HANDLE_SIZE / 2) {
+                    isResizing = true;
+                    isDrawing = true;
+                    activeHandle = type;
+                    dragStartX = mouseX;
+                    dragStartY = mouseY;
+                    document.getElementById('confirm-crop-btn').style.display = 'none';
+                    return;
+                }
+            }
+        }
+        isResizing = false;
         isDrawing = true;
         startX = mouseX;
         startY = mouseY;
@@ -1041,6 +1073,15 @@ canvas.addEventListener('mousemove', (e) => {
     }
 
     if (currentTool === 'crop') {
+        if (isResizing && cropSelection) {
+            const dx = currentX - dragStartX;
+            const dy = currentY - dragStartY;
+            resizeRect(cropSelection, activeHandle, dx, dy);
+            dragStartX = currentX;
+            dragStartY = currentY;
+            redraw();
+            return;
+        }
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
         const w = Math.abs(currentX - startX);
@@ -1142,7 +1183,18 @@ canvas.addEventListener('mouseup', (e) => {
 
     if (currentTool === 'crop') {
         isDrawing = false;
-        if (cropSelection && cropSelection.w > 10 && cropSelection.h > 10) {
+        isResizing = false;
+        activeHandle = null;
+        if (cropSelection && Math.abs(cropSelection.w) > 10 && Math.abs(cropSelection.h) > 10) {
+            // Normalize cropSelection
+            if (cropSelection.w < 0) {
+                cropSelection.x += cropSelection.w;
+                cropSelection.w = Math.abs(cropSelection.w);
+            }
+            if (cropSelection.h < 0) {
+                cropSelection.y += cropSelection.h;
+                cropSelection.h = Math.abs(cropSelection.h);
+            }
             document.getElementById('confirm-crop-btn').style.display = 'block';
         } else {
             cropSelection = null;
