@@ -1,3 +1,10 @@
+import { hexToRGBA, getShapeBounds, isPointInShape } from './js/utils.js';
+import { drawPen, resizePen } from './js/tools/pen.js';
+import { drawShape as drawShapeInternal, resizeRect, resizeOval, resizeLine } from './js/tools/shapes.js';
+import { drawText, resizeText } from './js/tools/text.js';
+import { drawCropOverlay as drawCropOverlayInternal } from './js/tools/crop.js';
+import { drawSelectionHighlight as drawSelectionHighlightInternal, getResizeHandles } from './js/tools/select.js';
+
 const canvas = document.getElementById('editor-canvas');
 const ctx = canvas.getContext('2d');
 let img = new Image();
@@ -176,33 +183,8 @@ function redraw() {
 
     // Draw crop overlay if active
     if (currentTool === 'crop' && cropSelection) {
-        drawCropOverlay(cropSelection);
+        drawCropOverlayInternal(cropSelection, ctx, canvas.width, canvas.height);
     }
-}
-
-function drawCropOverlay(selection) {
-    const { x, y, w, h } = selection;
-
-    // Dim the outside area
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-
-    // Top
-    ctx.fillRect(0, 0, canvas.width, y);
-    // Bottom
-    ctx.fillRect(0, y + h, canvas.width, canvas.height - (y + h));
-    // Left
-    ctx.fillRect(0, y, x, h);
-    // Right
-    ctx.fillRect(x + w, y, canvas.width - (x + w), h);
-
-    // Draw selection border
-    ctx.strokeStyle = '#6366f1';
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-    ctx.setLineDash([]);
-
-    // Draw "ants" or handles? For now just the rectangle.
 }
 
 function updateUIForSelection(shape) {
@@ -363,8 +345,8 @@ function getLayerIcon(shape) {
     const strokeOpacity = shape.strokeOpacity !== undefined ? shape.strokeOpacity : 1.0;
 
     // Convert hex to rgba for the SVG to respect opacity
-    const strokeRGBA = stroke.startsWith('#') ? hexToRGBA(stroke, strokeOpacity) : stroke;
-    const fillRGBA = fill.startsWith('#') ? hexToRGBA(fill, fillOpacity) : fill;
+    const strokeRGBA = hexToRGBA(stroke, strokeOpacity);
+    const fillRGBA = hexToRGBA(fill, fillOpacity);
 
     switch (type) {
         case 'line': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
@@ -421,179 +403,25 @@ function handleDragEnd() {
 }
 
 function drawShape(shape) {
-    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0);
-    ctx.fillStyle = hexToRGBA(shape.fillColor, shape.fillOpacity ?? 1.0);
-    ctx.lineWidth = shape.thickness || 3;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-
     switch (shape.type) {
-        case 'line':
-            ctx.moveTo(shape.x1, shape.y1);
-            ctx.lineTo(shape.x2, shape.y2);
-            ctx.stroke();
-            break;
-        case 'rect':
-            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
-                if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
-                    ctx.beginPath();
-                    ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
-                        shape.borderRadius.tl || 0,
-                        shape.borderRadius.tr || 0,
-                        shape.borderRadius.br || 0,
-                        shape.borderRadius.bl || 0
-                    ]);
-                    ctx.fill();
-                } else {
-                    ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
-                }
-            }
-
-            if (shape.borderRadius && (shape.borderRadius.tl || shape.borderRadius.tr || shape.borderRadius.br || shape.borderRadius.bl)) {
-                ctx.beginPath();
-                ctx.roundRect(shape.x, shape.y, shape.w, shape.h, [
-                    shape.borderRadius.tl || 0,
-                    shape.borderRadius.tr || 0,
-                    shape.borderRadius.br || 0,
-                    shape.borderRadius.bl || 0
-                ]);
-                ctx.stroke();
-            } else {
-                ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
-            }
-            break;
-        case 'circle':
-            ctx.arc(shape.x, shape.y, shape.r, 0, 2 * Math.PI);
-            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
-                ctx.fill();
-            }
-            ctx.stroke();
-            break;
-        case 'oval':
-            ctx.ellipse(shape.x, shape.y, shape.rx, shape.ry, 0, 0, 2 * Math.PI);
-            if (shape.fillColor && shape.fillColor !== '#ffffff00' && shape.fillColor !== 'transparent') {
-                ctx.fill();
-            }
-            ctx.stroke();
-            break;
-        case 'arrow':
-            drawArrow(shape.x1, shape.y1, shape.x2, shape.y2, ctx, shape.thickness);
-            break;
         case 'pen':
-            if (shape.points.length < 2) return;
-            ctx.moveTo(shape.points[0].x, shape.points[0].y);
-            for (let i = 1; i < shape.points.length; i++) {
-                ctx.lineTo(shape.points[i].x, shape.points[i].y);
-            }
-            ctx.stroke();
+            drawPen(ctx, shape, hexToRGBA);
             break;
         case 'text':
-            const fontWeight = shape.bold ? 'bold' : 'normal';
-            const fontStyle = shape.italic ? 'italic' : 'normal';
-            ctx.font = `${fontStyle} ${fontWeight} ${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
-            ctx.fillStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0); // Use shape.color for text
-            ctx.textBaseline = 'top';
-            const lines = shape.text.split('\n');
-            const lineHeight = (shape.fontSize || 20) * 1.2;
-            lines.forEach((line, index) => {
-                const lx = shape.x;
-                const ly = shape.y + (index * lineHeight);
-                ctx.fillText(line, lx, ly);
-
-                if (shape.underline) {
-                    const metrics = ctx.measureText(line);
-                    ctx.beginPath();
-                    ctx.strokeStyle = hexToRGBA(shape.color, shape.strokeOpacity ?? 1.0); // Also ensure stroke color for underline
-                    ctx.lineWidth = Math.max(1, (shape.fontSize || 20) / 15);
-                    ctx.moveTo(lx, ly + (shape.fontSize || 20));
-                    ctx.lineTo(lx + metrics.width, ly + (shape.fontSize || 20));
-                    ctx.stroke();
-                }
-            });
+            drawText(ctx, shape, hexToRGBA);
+            break;
+        case 'line':
+        case 'arrow':
+        case 'rect':
+        case 'circle':
+        case 'oval':
+            drawShapeInternal(ctx, shape, hexToRGBA);
             break;
     }
-}
-
-function hexToRGBA(hex, opacity) {
-    if (!hex || hex === 'transparent' || hex === '#ffffff00') return 'transparent';
-    let r = 0, g = 0, b = 0;
-    if (hex.length === 4) {
-        r = parseInt(hex[1] + hex[1], 16);
-        g = parseInt(hex[2] + hex[2], 16);
-        b = parseInt(hex[3] + hex[3], 16);
-    } else if (hex.length === 7) {
-        r = parseInt(hex.substring(1, 3), 16);
-        g = parseInt(hex.substring(3, 5), 16);
-        b = parseInt(hex.substring(5, 7), 16);
-    }
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
-function drawArrow(x1, y1, x2, y2, context, thickness) {
-    const headlen = 10 + (thickness || 3) * 1.5;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const L = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-
-    // Shorten the shaft so its rounded end doesn't blunt the sharp tip
-    const shaftEndX = L > headlen ? x2 - (headlen * 0.7) * Math.cos(angle) : x1;
-    const shaftEndY = L > headlen ? y2 - (headlen * 0.7) * Math.sin(angle) : y1;
-
-    // Draw the arrow shaft
-    context.beginPath();
-    context.moveTo(x1, y1);
-    context.lineTo(shaftEndX, shaftEndY);
-    context.stroke();
-
-    // Draw the arrow head (filled triangle)
-    context.beginPath();
-    context.moveTo(x2, y2);
-    context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 7), y2 - headlen * Math.sin(angle - Math.PI / 7));
-    context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 7), y2 - headlen * Math.sin(angle + Math.PI / 7));
-    context.closePath();
-    context.fillStyle = context.strokeStyle; // Use strike color for filling the head
-    context.fill();
 }
 
 function drawSelectionHighlight(shape) {
-    ctx.strokeStyle = '#6366f1';
-    ctx.fillStyle = '#ffffff';
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 1;
-
-    let bounds = getShapeBounds(shape);
-    ctx.strokeRect(bounds.x - 5, bounds.y - 5, bounds.w + 10, bounds.h + 10);
-    ctx.setLineDash([]);
-
-    // Draw handles
-    const handles = getResizeHandles(bounds);
-    Object.values(handles).forEach(h => {
-        ctx.fillRect(h.x - RESIZE_HANDLE_SIZE / 2, h.y - RESIZE_HANDLE_SIZE / 2, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
-        ctx.strokeRect(h.x - RESIZE_HANDLE_SIZE / 2, h.y - RESIZE_HANDLE_SIZE / 2, RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
-    });
-}
-
-function getResizeHandles(bounds) {
-    const { x, y, w, h } = bounds;
-    const padding = 5;
-    const left = x - padding;
-    const right = x + w + padding;
-    const top = y - padding;
-    const bottom = y + h + padding;
-    const midX = x + w / 2;
-    const midY = y + h / 2;
-
-    return {
-        nw: { x: left, y: top, cursor: 'nwse-resize' },
-        n: { x: midX, y: top, cursor: 'ns-resize' },
-        ne: { x: right, y: top, cursor: 'nesw-resize' },
-        e: { x: right, y: midY, cursor: 'ew-resize' },
-        se: { x: right, y: bottom, cursor: 'nwse-resize' },
-        s: { x: midX, y: bottom, cursor: 'ns-resize' },
-        sw: { x: left, y: bottom, cursor: 'nesw-resize' },
-        w: { x: left, y: midY, cursor: 'ew-resize' }
-    };
+    drawSelectionHighlightInternal(ctx, shape, RESIZE_HANDLE_SIZE);
 }
 
 function updateCursor(mouseX, mouseY) {
@@ -606,7 +434,7 @@ function updateCursor(mouseX, mouseY) {
         const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
         if (currentTool === 'select' && handle) {
             const bounds = getShapeBounds(selectedShape);
-            const handles = getResizeHandles(bounds);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
             canvas.style.cursor = handles[handle].cursor;
             canvas.classList.remove('eraser-cursor');
             return;
@@ -633,7 +461,7 @@ function updateCursor(mouseX, mouseY) {
 function getHandleAtPoint(x, y, shape) {
     if (!shape) return null;
     const bounds = getShapeBounds(shape);
-    const handles = getResizeHandles(bounds);
+    const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
     for (const [type, handle] of Object.entries(handles)) {
         if (Math.abs(x - handle.x) <= RESIZE_HANDLE_SIZE / 2 + 2 &&
             Math.abs(y - handle.y) <= RESIZE_HANDLE_SIZE / 2 + 2) {
@@ -641,62 +469,6 @@ function getHandleAtPoint(x, y, shape) {
         }
     }
     return null;
-}
-
-function getShapeBounds(shape) {
-    switch (shape.type) {
-        case 'line':
-        case 'arrow':
-            return {
-                x: Math.min(shape.x1, shape.x2),
-                y: Math.min(shape.y1, shape.y2),
-                w: Math.abs(shape.x1 - shape.x2),
-                h: Math.abs(shape.y1 - shape.y2)
-            };
-        case 'rect':
-            return {
-                x: Math.min(shape.x, shape.x + shape.w),
-                y: Math.min(shape.y, shape.y + shape.h),
-                w: Math.abs(shape.w),
-                h: Math.abs(shape.h)
-            };
-        case 'circle':
-            return { x: shape.x - shape.r, y: shape.y - shape.r, w: shape.r * 2, h: shape.r * 2 };
-        case 'oval':
-            return { x: shape.x - shape.rx, y: shape.y - shape.ry, w: shape.rx * 2, h: shape.ry * 2 };
-        case 'pen':
-            const xs = shape.points.map(p => p.x);
-            const ys = shape.points.map(p => p.y);
-            const minX = Math.min(...xs);
-            const minY = Math.min(...ys);
-            return {
-                x: minX,
-                y: minY,
-                w: Math.max(...xs) - minX,
-                h: Math.max(...ys) - minY
-            };
-        case 'text':
-            const fontSize = shape.fontSize || 20;
-            const fontFamily = shape.fontFamily || 'Inter, sans-serif';
-            ctx.font = `${fontSize}px ${fontFamily}`;
-            const lines = shape.text.split('\n');
-            const widths = lines.map(line => ctx.measureText(line).width);
-            const lineHeight = fontSize * 1.2;
-            return {
-                x: shape.x,
-                y: shape.y,
-                w: Math.max(...widths),
-                h: lines.length * lineHeight
-            };
-    }
-    return { x: 0, y: 0, w: 0, h: 0 };
-}
-
-function isPointInShape(x, y, shape) {
-    const bounds = getShapeBounds(shape);
-    const padding = 10;
-    return x >= bounds.x - padding && x <= bounds.x + bounds.w + padding &&
-        y >= bounds.y - padding && y <= bounds.y + bounds.h + padding;
 }
 
 // Tool Selection
@@ -1322,128 +1094,31 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
 }
 
 function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
-    const bounds = getShapeBounds(shape);
-
     switch (shape.type) {
-        case 'rect': {
-            const isWNeg = shape.w < 0;
-            const isHNeg = shape.h < 0;
-
-            // Map n/s/w/e to actual properties based on whether they are flipped
-            if (handleType.includes('n')) {
-                if (!isHNeg) { shape.y += dy; shape.h -= dy; }
-                else { shape.h += dy; }
-            }
-            if (handleType.includes('s')) {
-                if (!isHNeg) { shape.h += dy; }
-                else { shape.y += dy; shape.h -= dy; }
-            }
-            if (handleType.includes('w')) {
-                if (!isWNeg) { shape.x += dx; shape.w -= dx; }
-                else { shape.w += dx; }
-            }
-            if (handleType.includes('e')) {
-                if (!isWNeg) { shape.w += dx; }
-                else { shape.x += dx; shape.w -= dx; }
-            }
+        case 'rect':
+            resizeRect(shape, handleType, dx, dy);
             break;
-        }
-
-        case 'oval': {
-            // Oval is centered, so resizing one side affects both by half, 
-            // but we want the opposite side pinned, so we move center too.
-            if (handleType.includes('n')) { shape.y += dy / 2; shape.ry -= dy / 2; }
-            if (handleType.includes('s')) { shape.y += dy / 2; shape.ry += dy / 2; }
-            if (handleType.includes('w')) { shape.x += dx / 2; shape.rx -= dx / 2; }
-            if (handleType.includes('e')) { shape.x += dx / 2; shape.rx += dx / 2; }
-            shape.rx = Math.max(1, shape.rx);
-            shape.ry = Math.max(1, shape.ry);
+        case 'oval':
+            resizeOval(shape, handleType, dx, dy);
             break;
-        }
-
         case 'circle':
             // Convert circle to oval if stretching from side/corner
             shape.type = 'oval';
             shape.rx = shape.r;
             shape.ry = shape.r;
             delete shape.r;
-            // Fall through to oval logic
-            return resizeShape(shape, handleType, dx, dy, mouseX, mouseY);
-
+            resizeOval(shape, handleType, dx, dy);
+            break;
         case 'line':
-        case 'arrow': {
-            const dist1 = Math.sqrt(Math.pow(mouseX - shape.x1, 2) + Math.pow(mouseY - shape.y1, 2));
-            const dist2 = Math.sqrt(Math.pow(mouseX - shape.x2, 2) + Math.pow(mouseY - shape.y2, 2));
-            if (dist1 < dist2) {
-                if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
-                    if (handleType.includes('w') || handleType.includes('e')) shape.x1 += dx;
-                    if (handleType.includes('n') || handleType.includes('s')) shape.y1 += dy;
-                }
-            } else {
-                if (handleType.includes('n') || handleType.includes('s') || handleType.includes('w') || handleType.includes('e')) {
-                    if (handleType.includes('w') || handleType.includes('e')) shape.x2 += dx;
-                    if (handleType.includes('n') || handleType.includes('s')) shape.y2 += dy;
-                }
-            }
+        case 'arrow':
+            resizeLine(shape, handleType, dx, dy, mouseX, mouseY);
             break;
-        }
-
-        case 'text': {
-            const isN = handleType.includes('n');
-            const isS = handleType.includes('s');
-            const isW = handleType.includes('w');
-            const isE = handleType.includes('e');
-
-            let change = 0;
-            if (isN) change = -dy;
-            else if (isS) change = dy;
-            else if (isW) change = -dx;
-            else if (isE) change = dx;
-
-            if (change !== 0) {
-                const oldSize = shape.fontSize || 20;
-                let newSize = oldSize;
-                if (isN || isS) {
-                    newSize = oldSize + change;
-                } else {
-                    newSize = oldSize + (change * 0.5);
-                }
-
-                shape.fontSize = Math.max(8, Math.min(200, Math.round(newSize)));
-                updateFontInputsFromShape(shape);
-            }
+        case 'text':
+            resizeText(shape, handleType, dx, dy, updateFontInputsFromShape);
             break;
-        }
-
-        case 'pen': {
-            const oldBounds = getShapeBounds(shape);
-            const isW = handleType.includes('w');
-            const isE = handleType.includes('e');
-            const isN = handleType.includes('n');
-            const isS = handleType.includes('s');
-
-            let newW = oldBounds.w;
-            let newH = oldBounds.h;
-            let offsetX = 0;
-            let offsetY = 0;
-
-            if (isW) { newW -= dx; offsetX = dx; }
-            if (isE) { newW += dx; }
-            if (isN) { newH -= dy; offsetY = dy; }
-            if (isS) { newH += dy; }
-
-            // Avoid division by zero and excessive scaling
-            if (oldBounds.w === 0) newW = 1;
-            if (oldBounds.h === 0) newH = 1;
-            const scaleX = newW / (oldBounds.w || 1);
-            const scaleY = newH / (oldBounds.h || 1);
-
-            shape.points = shape.points.map(p => ({
-                x: oldBounds.x + offsetX + (p.x - oldBounds.x) * scaleX,
-                y: oldBounds.y + offsetY + (p.y - oldBounds.y) * scaleY
-            }));
+        case 'pen':
+            resizePen(shape, handleType, dx, dy);
             break;
-        }
     }
 }
 
