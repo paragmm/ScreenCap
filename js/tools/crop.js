@@ -2,7 +2,7 @@ export function drawCropOverlay(ctx, selection, canvasWidth, canvasHeight) {
     if (!selection) return;
 
     // Dim the area outside the selection
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
 
     // Top
     ctx.fillRect(0, 0, canvasWidth, selection.y);

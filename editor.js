@@ -428,8 +428,12 @@ function drawSelectionHighlight(shape) {
 function updateCursor(mouseX, mouseY) {
     if (mouseX === undefined || mouseY === undefined) {
         canvas.style.cursor = '';
+        canvas.classList.remove('crop-cursor', 'eraser-cursor');
         return;
     }
+
+    // Default: no custom classes
+    canvas.classList.remove('crop-cursor', 'eraser-cursor');
 
     if (currentTool === 'select' || currentTool === 'eraser') {
         const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
@@ -437,7 +441,6 @@ function updateCursor(mouseX, mouseY) {
             const bounds = getShapeBounds(selectedShape);
             const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
             canvas.style.cursor = handles[handle].cursor;
-            canvas.classList.remove('eraser-cursor');
             return;
         }
 
@@ -445,13 +448,12 @@ function updateCursor(mouseX, mouseY) {
         if (isOverShape) {
             if (currentTool === 'eraser') {
                 canvas.classList.add('eraser-cursor');
+                canvas.style.cursor = '';
             } else {
                 canvas.style.cursor = 'grab';
-                canvas.classList.remove('eraser-cursor');
             }
         } else {
             canvas.style.cursor = '';
-            canvas.classList.remove('eraser-cursor');
         }
     } else if (currentTool === 'crop' && cropSelection) {
         const handles = getCropHandles(cropSelection, RESIZE_HANDLE_SIZE);
@@ -466,12 +468,14 @@ function updateCursor(mouseX, mouseY) {
         if (foundHandle) {
             canvas.style.cursor = foundHandle.cursor;
         } else {
-            canvas.style.cursor = 'crosshair';
+            canvas.classList.add('crop-cursor');
+            canvas.style.cursor = '';
         }
-        canvas.classList.remove('eraser-cursor');
     } else {
-        canvas.style.cursor = (currentTool === 'crop') ? 'crosshair' : '';
-        canvas.classList.remove('eraser-cursor');
+        canvas.style.cursor = '';
+        if (currentTool === 'crop') {
+            canvas.classList.add('crop-cursor');
+        }
     }
 }
 
