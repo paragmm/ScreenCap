@@ -1,7 +1,7 @@
 import { hexToRGBA, getShapeBounds, isPointInShape } from './js/utils.js';
 import { drawPen, resizePen } from './js/tools/pen.js';
 import { drawShape as drawShapeInternal, resizeRect, resizeOval, resizeLine } from './js/tools/shapes.js';
-import { drawText, resizeText } from './js/tools/text.js';
+import { drawText, drawTextArea, resizeText } from './js/tools/text.js';
 import { drawCropOverlay as drawCropOverlayInternal, getCropHandles } from './js/tools/crop.js';
 import { drawSelectionHighlight as drawSelectionHighlightInternal, getResizeHandles } from './js/tools/select.js';
 
@@ -43,7 +43,8 @@ let typeCounters = {
     oval: 0,
     arrow: 0,
     pen: 0,
-    text: 0
+    text: 0,
+    textarea: 0
 };
 
 function getUniqueName(type) {
@@ -202,7 +203,7 @@ function updateUIForSelection(shape) {
             fillControlGroup.style.display = 'none';
         }
 
-        if (shape.type === 'text') {
+        if (shape.type === 'text' || shape.type === 'textarea') {
             thicknessControls.style.display = 'none';
             fontControls.style.display = 'flex';
         } else {
@@ -356,6 +357,7 @@ function getLayerIcon(shape) {
         case 'arrow': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${strokeRGBA}"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg>`;
         case 'pen': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>`;
         case 'text': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`;
+        case 'textarea': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="13" y2="16"></line></svg>`;
         default: return '';
     }
 }
@@ -409,6 +411,9 @@ function drawShape(shape) {
             break;
         case 'text':
             drawText(ctx, shape, hexToRGBA);
+            break;
+        case 'textarea':
+            drawTextArea(ctx, shape, hexToRGBA);
             break;
         case 'line':
         case 'arrow':
@@ -521,7 +526,7 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
             fillControlGroup.style.display = 'none';
         }
 
-        if (currentTool === 'text') {
+        if (currentTool === 'text' || currentTool === 'textarea') {
             thicknessControls.style.display = 'none';
             fontControls.style.display = 'flex';
         } else {
@@ -581,7 +586,7 @@ function updateFontInputsFromShape(shape) {
     const familySelect = document.getElementById('font-family');
     const sizeInput = document.getElementById('font-size');
 
-    if (shape && shape.type === 'text') {
+    if (shape && (shape.type === 'text' || shape.type === 'textarea')) {
         familySelect.value = shape.fontFamily || 'Inter, sans-serif';
         sizeInput.value = shape.fontSize || 20;
         document.getElementById('btn-bold').classList.toggle('active', !!shape.bold);
@@ -639,7 +644,7 @@ function updateFontInputsFromShape(shape) {
     btn.addEventListener('click', () => {
         const isActive = btn.classList.toggle('active');
 
-        if (selectedShape && selectedShape.type === 'text') {
+        if (selectedShape && (selectedShape.type === 'text' || selectedShape.type === 'textarea')) {
             selectedShape[style] = isActive;
             redraw();
         } else {
@@ -783,7 +788,7 @@ document.getElementById('fill-enabled').addEventListener('change', (e) => {
 document.getElementById('font-family').addEventListener('change', (e) => {
     const val = e.target.value;
     currentFontFamily = val;
-    if (selectedShape && selectedShape.type === 'text') {
+    if (selectedShape && (selectedShape.type === 'text' || selectedShape.type === 'textarea')) {
         selectedShape.fontFamily = val;
         redraw();
     }
@@ -796,7 +801,7 @@ document.getElementById('font-family').addEventListener('change', (e) => {
 document.getElementById('font-size').addEventListener('input', (e) => {
     const val = parseInt(e.target.value) || 12;
     currentFontSize = val;
-    if (selectedShape && selectedShape.type === 'text') {
+    if (selectedShape && (selectedShape.type === 'text' || selectedShape.type === 'textarea')) {
         selectedShape.fontSize = val;
         redraw();
     }
@@ -806,6 +811,115 @@ document.getElementById('font-size').addEventListener('input', (e) => {
         input.style.lineHeight = `${val * 1.2}px`;
     }
 });
+
+function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
+    const isEditing = !!shapeOrNull;
+    const shapeToEdit = isEditing ? shapeOrNull : {
+        type: isTextArea ? 'textarea' : 'text',
+        x: x,
+        y: y,
+        w: isTextArea ? 0 : undefined,
+        h: isTextArea ? 0 : undefined,
+        text: '',
+        color: currentColor,
+        fontSize: currentFontSize,
+        fontFamily: currentFontFamily,
+        bold: currentBold,
+        italic: currentItalic,
+        underline: currentUnderline,
+        strokeOpacity: currentStrokeOpacity,
+        name: getUniqueName(isTextArea ? 'textarea' : 'text')
+    };
+
+    if (isEditing) {
+        // Update global state to match the shape being edited
+        currentBold = !!shapeToEdit.bold;
+        currentItalic = !!shapeToEdit.italic;
+        currentUnderline = !!shapeToEdit.underline;
+        currentFontSize = shapeToEdit.fontSize || 20;
+        currentFontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
+        currentColor = shapeToEdit.color;
+        document.getElementById('color-picker').value = currentColor;
+        updateFontInputsFromShape(null); // Sync toolbar buttons
+
+        const actualIndex = shapes.indexOf(shapeToEdit);
+        if (actualIndex !== -1) shapes.splice(actualIndex, 1);
+        redraw();
+    }
+
+    const input = document.createElement('div');
+    input.className = 'text-input';
+    input.contentEditable = true;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    input.style.left = `${canvasRect.left + shapeToEdit.x - (isTextArea ? 0 : 5)}px`;
+    input.style.top = `${canvasRect.top + shapeToEdit.y - (isTextArea ? 0 : 5)}px`;
+
+    const _isTextArea = isTextArea || shapeToEdit.type === 'textarea';
+    if (_isTextArea && shapeToEdit.w) {
+        input.style.width = `${shapeToEdit.w}px`;
+        input.style.height = `${shapeToEdit.h}px`;
+        input.style.border = '1px dotted #6366f1';
+        input.style.overflow = 'auto';
+    }
+
+    input.style.color = shapeToEdit.color;
+    input.style.fontSize = `${shapeToEdit.fontSize || 20}px`;
+    input.style.fontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
+    input.style.fontWeight = shapeToEdit.bold ? 'bold' : 'normal';
+    input.style.fontStyle = shapeToEdit.italic ? 'italic' : 'normal';
+    input.style.textDecoration = shapeToEdit.underline ? 'underline' : 'none';
+    input.style.lineHeight = `${(shapeToEdit.fontSize || 20) * 1.2}px`;
+    input.innerText = shapeToEdit.text;
+
+    document.body.appendChild(input);
+
+    setTimeout(() => {
+        input.focus();
+        if (isEditing) {
+            const range = document.createRange();
+            range.selectNodeContents(input);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }, 0);
+
+    let isCancelled = false;
+    const handleFinish = () => {
+        if (isCancelled) return;
+        const text = input.innerText.trim();
+        if (text) {
+            shapeToEdit.text = text;
+            shapeToEdit.color = currentColor;
+            shapeToEdit.fontSize = currentFontSize;
+            shapeToEdit.fontFamily = currentFontFamily;
+            shapeToEdit.bold = currentBold;
+            shapeToEdit.italic = currentItalic;
+            shapeToEdit.underline = currentUnderline;
+            shapeToEdit.strokeOpacity = currentStrokeOpacity;
+            shapes.push(shapeToEdit);
+            selectedShape = shapeToEdit;
+        }
+        input.remove();
+        redraw();
+        saveState();
+        updateUIForSelection(selectedShape);
+    };
+
+    input.addEventListener('blur', handleFinish);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !_isTextArea) {
+            e.preventDefault();
+            input.blur();
+        } else if (e.key === 'Escape') {
+            isCancelled = true;
+            if (isEditing) shapes.push(shapeToEdit);
+            input.remove();
+            redraw();
+        }
+    });
+}
 
 // Drawing Logic
 canvas.addEventListener('mousedown', (e) => {
@@ -852,148 +966,22 @@ canvas.addEventListener('mousedown', (e) => {
         return;
     }
 
-    if (currentTool === 'text') {
-        const foundIndex = shapes.slice().reverse().findIndex(s => s.type === 'text' && isPointInShape(mouseX, mouseY, s));
+
+
+    if (currentTool === 'text' || currentTool === 'textarea') {
+        const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
         if (foundIndex !== -1) {
             const actualIndex = shapes.length - 1 - foundIndex;
-            const shapeToEdit = shapes[actualIndex];
-
-            // Initiate editing for existing shape
-            const input = document.createElement('div');
-            input.className = 'text-input';
-            input.contentEditable = true;
-
-            // Get canvas offset to position input correctly in body
-            const canvasRect = canvas.getBoundingClientRect();
-            input.style.left = `${canvasRect.left + shapeToEdit.x - 5}px`;
-            input.style.top = `${canvasRect.top + shapeToEdit.y - 5}px`;
-
-            input.style.color = shapeToEdit.color;
-            input.style.fontSize = `${shapeToEdit.fontSize || 20}px`;
-            input.style.fontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
-            input.style.fontWeight = shapeToEdit.bold ? 'bold' : 'normal';
-            input.style.fontStyle = shapeToEdit.italic ? 'italic' : 'normal';
-            input.style.textDecoration = shapeToEdit.underline ? 'underline' : 'none';
-            input.style.lineHeight = `${(shapeToEdit.fontSize || 20) * 1.2}px`;
-            input.innerText = shapeToEdit.text;
-
-            // Update global state to match the shape being edited
-            currentBold = !!shapeToEdit.bold;
-            currentItalic = !!shapeToEdit.italic;
-            currentUnderline = !!shapeToEdit.underline;
-            currentFontSize = shapeToEdit.fontSize || 20;
-            currentFontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
-            currentColor = shapeToEdit.color;
-            document.getElementById('color-picker').value = currentColor;
-            updateFontInputsFromShape(null); // Sync toolbar buttons
-
-            // Temporarily remove shape from array while editing
-            shapes.splice(actualIndex, 1);
-            redraw();
-
-            document.body.appendChild(input);
-            setTimeout(() => {
-                input.focus();
-                // Select all text
-                const range = document.createRange();
-                range.selectNodeContents(input);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }, 0);
-
-            let isCancelled = false;
-            const handleFinish = () => {
-                if (isCancelled) return;
-                const text = input.innerText.trim();
-                if (text) {
-                    shapeToEdit.text = text;
-                    shapeToEdit.color = currentColor;
-                    shapeToEdit.fontSize = currentFontSize;
-                    shapeToEdit.fontFamily = currentFontFamily;
-                    shapeToEdit.bold = currentBold;
-                    shapeToEdit.italic = currentItalic;
-                    shapeToEdit.underline = currentUnderline;
-                    shapeToEdit.strokeOpacity = currentStrokeOpacity;
-                    shapes.push(shapeToEdit);
-                    selectedShape = shapeToEdit;
-                }
-                input.remove();
-                redraw();
-                saveState();
-                updateUIForSelection(selectedShape);
-            };
-
-            input.addEventListener('blur', handleFinish);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    input.blur();
-                } else if (e.key === 'Escape') {
-                    isCancelled = true;
-                    shapes.push(shapeToEdit);
-                    input.remove();
-                    redraw();
-                }
-            });
+            initiateTextEdit(shapes[actualIndex]);
             return;
         }
 
-        const input = document.createElement('div');
-        input.className = 'text-input';
-        input.contentEditable = true;
-        input.style.left = `${e.clientX}px`;
-        input.style.top = `${e.clientY}px`;
-        input.style.color = currentColor;
-        input.style.fontSize = `${currentFontSize}px`;
-        input.style.fontFamily = currentFontFamily;
-        input.style.fontWeight = currentBold ? 'bold' : 'normal';
-        input.style.fontStyle = currentItalic ? 'italic' : 'normal';
-        input.style.textDecoration = currentUnderline ? 'underline' : 'none';
-        input.style.lineHeight = `${currentFontSize * 1.2}px`;
-        document.body.appendChild(input);
+        if (currentTool === 'text') {
+            initiateTextEdit(null, mouseX, mouseY);
+            return;
+        }
 
-        setTimeout(() => input.focus(), 0);
-
-        let isCancelled = false;
-        const handleFinish = () => {
-            if (isCancelled) return;
-            const text = input.innerText.trim();
-            if (text) {
-                const newShape = {
-                    type: 'text',
-                    x: mouseX,
-                    y: mouseY,
-                    text: text,
-                    color: currentColor,
-                    fontSize: currentFontSize,
-                    fontFamily: currentFontFamily,
-                    bold: currentBold,
-                    italic: currentItalic,
-                    underline: currentUnderline,
-                    strokeOpacity: currentStrokeOpacity,
-                    name: getUniqueName('text')
-                };
-                shapes.push(newShape);
-                selectedShape = newShape;
-            }
-            input.remove();
-            redraw();
-            saveState();
-            updateUIForSelection(selectedShape);
-        };
-
-        input.addEventListener('blur', handleFinish);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                input.blur();
-            } else if (e.key === 'Escape') {
-                isCancelled = true;
-                input.remove();
-            }
-        });
-        return;
+        // For textarea tool, we don't return here; we fall through to start drawing the area
     }
 
     if (currentTool === 'crop') {
@@ -1098,7 +1086,7 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentTool === 'pen') {
         shapes[shapes.length - 1].points.push({ x: currentX, y: currentY });
         redraw();
-    } else if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
+    } else if (['line', 'rect', 'circle', 'arrow', 'textarea'].includes(currentTool)) {
         redraw();
         // Draw the shape being created (not yet in shapes array) - passing true for isPreview
         const tempShape = createShape(currentTool, startX, startY, currentX, currentY, true);
@@ -1115,7 +1103,8 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
         fillColor: (fillEnabled && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
         fillOpacity: (type === 'rect' || type === 'circle') ? currentFillOpacity : 1.0,
         thickness: currentThickness,
-        name: isPreview ? '' : getUniqueName(type)
+        name: isPreview ? '' : getUniqueName(type),
+        isPreview: isPreview
     };
     switch (type) {
         case 'line':
@@ -1123,16 +1112,27 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
             shape.x1 = x1; shape.y1 = y1; shape.x2 = x2; shape.y2 = y2;
             break;
         case 'rect':
+        case 'textarea':
             shape.x = Math.min(x1, x2);
             shape.y = Math.min(y1, y2);
             shape.w = Math.abs(x2 - x1);
             shape.h = Math.abs(y2 - y1);
-            shape.borderRadius = {
-                tl: parseInt(document.getElementById('radius-tl').value) || 0,
-                tr: parseInt(document.getElementById('radius-tr').value) || 0,
-                br: parseInt(document.getElementById('radius-br').value) || 0,
-                bl: parseInt(document.getElementById('radius-bl').value) || 0
-            };
+            if (type === 'rect') {
+                shape.borderRadius = {
+                    tl: parseInt(document.getElementById('radius-tl').value) || 0,
+                    tr: parseInt(document.getElementById('radius-tr').value) || 0,
+                    br: parseInt(document.getElementById('radius-br').value) || 0,
+                    bl: parseInt(document.getElementById('radius-bl').value) || 0
+                };
+            }
+            if (type === 'textarea') {
+                shape.text = isPreview ? '' : 'Type here...';
+                shape.fontSize = currentFontSize;
+                shape.fontFamily = currentFontFamily;
+                shape.bold = currentBold;
+                shape.italic = currentItalic;
+                shape.underline = currentUnderline;
+            }
             break;
         case 'circle':
             shape.x = x1; shape.y = y1;
@@ -1151,6 +1151,7 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
 function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
     switch (shape.type) {
         case 'rect':
+        case 'textarea':
             resizeRect(shape, handleType, dx, dy);
             break;
         case 'oval':
@@ -1216,8 +1217,15 @@ canvas.addEventListener('mouseup', (e) => {
         return;
     }
 
-    if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
-        shapes.push(createShape(currentTool, startX, startY, currentX, currentY, false));
+    if (['line', 'rect', 'circle', 'arrow', 'textarea'].includes(currentTool)) {
+        const newShape = createShape(currentTool, startX, startY, currentX, currentY, false);
+        if (currentTool === 'textarea') {
+            if (newShape.w > 10 && newShape.h > 10) {
+                initiateTextEdit(newShape, newShape.x, newShape.y, true);
+            }
+        } else {
+            shapes.push(newShape);
+        }
     }
 
     if (isDrawing || isResizing) {
