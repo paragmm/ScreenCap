@@ -23,9 +23,11 @@ let currentBold = false;
 let currentItalic = false;
 let currentUnderline = false;
 let clipboardShape = null;
-let history = [[]]; // Start with an empty state
-let historyIndex = 0;
+let history = [];
+let historyIndex = -1;
 let userManuallyCollapsedSidebar = false;
+let cropSelection = null;
+let isCropping = false;
 
 let typeCounters = {
     line: 0,
@@ -66,6 +68,7 @@ chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
                 canvas.width = img.width;
                 canvas.height = img.height;
             }
+            saveState(); // Capture initial state
             redraw();
             updateLayersList();
         };
@@ -73,10 +76,19 @@ chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
 });
 
 function saveState() {
+    const currentState = {
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        cropData: cropData ? JSON.parse(JSON.stringify(cropData)) : null,
+        width: canvas.width,
+        height: canvas.height
+    };
+
     // Only save if different from current top of history
-    const currentState = JSON.stringify(shapes);
-    if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === currentState) {
-        return;
+    if (historyIndex >= 0) {
+        const lastState = history[historyIndex];
+        if (JSON.stringify(lastState) === JSON.stringify(currentState)) {
+            return;
+        }
     }
 
     // Remove any "redo" states if we're in the middle of history
@@ -84,7 +96,7 @@ function saveState() {
         history = history.slice(0, historyIndex + 1);
     }
 
-    history.push(JSON.parse(currentState));
+    history.push(currentState);
     historyIndex++;
 
     // Limit history size to 50 steps
@@ -94,7 +106,7 @@ function saveState() {
     }
 
     // Auto-expand sidebar when a shape is added/modified, if not manually collapsed
-    if (layersSidebar && layersSidebar.classList.contains('collapsed') && !userManuallyCollapsedSidebar) {
+    if (shapes.length > 0 && layersSidebar && layersSidebar.classList.contains('collapsed') && !userManuallyCollapsedSidebar) {
         layersSidebar.classList.remove('collapsed');
     }
 
@@ -105,23 +117,32 @@ function saveState() {
 function undo() {
     if (historyIndex > 0) {
         historyIndex--;
-        shapes = JSON.parse(JSON.stringify(history[historyIndex]));
-        selectedShape = null;
-        redraw();
-        updateHistoryButtons();
-        updateLayersList();
+        applyState(history[historyIndex]);
     }
 }
 
 function redo() {
     if (historyIndex < history.length - 1) {
         historyIndex++;
-        shapes = JSON.parse(JSON.stringify(history[historyIndex]));
-        selectedShape = null;
-        redraw();
-        updateHistoryButtons();
-        updateLayersList();
+        applyState(history[historyIndex]);
     }
+}
+
+function applyState(state) {
+    shapes = JSON.parse(JSON.stringify(state.shapes));
+    cropData = state.cropData ? JSON.parse(JSON.stringify(state.cropData)) : null;
+    canvas.width = state.width;
+    canvas.height = state.height;
+    selectedShape = null;
+    cropSelection = null;
+    if (currentTool === 'crop') {
+        document.getElementById('confirm-crop-btn').style.display = 'none';
+    } else {
+        document.getElementById('crop-actions').style.display = 'none';
+    }
+    redraw();
+    updateHistoryButtons();
+    updateLayersList();
 }
 
 function updateHistoryButtons() {
@@ -152,6 +173,36 @@ function redraw() {
     // We don't call updateLayersList here to avoid infinite loops 
     // but we might want to sync the "active" state in sidebar.
     syncSidebarSelection();
+
+    // Draw crop overlay if active
+    if (currentTool === 'crop' && cropSelection) {
+        drawCropOverlay(cropSelection);
+    }
+}
+
+function drawCropOverlay(selection) {
+    const { x, y, w, h } = selection;
+
+    // Dim the outside area
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+
+    // Top
+    ctx.fillRect(0, 0, canvas.width, y);
+    // Bottom
+    ctx.fillRect(0, y + h, canvas.width, canvas.height - (y + h));
+    // Left
+    ctx.fillRect(0, y, x, h);
+    // Right
+    ctx.fillRect(x + w, y, canvas.width - (x + w), h);
+
+    // Draw selection border
+    ctx.strokeStyle = '#6366f1';
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+
+    // Draw "ants" or handles? For now just the rectangle.
 }
 
 function updateUIForSelection(shape) {
@@ -684,6 +735,17 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
             thicknessControls.style.display = 'flex';
             fontControls.style.display = 'none';
         }
+
+        // Handle crop actions visibility
+        const cropActions = document.getElementById('crop-actions');
+        if (currentTool === 'crop') {
+            cropActions.style.display = 'flex';
+            document.getElementById('confirm-crop-btn').style.display = 'none'; // Hide until area selected
+        } else {
+            cropActions.style.display = 'none';
+            cropSelection = null;
+            redraw();
+        }
     });
 });
 
@@ -1141,6 +1203,16 @@ canvas.addEventListener('mousedown', (e) => {
         return;
     }
 
+    if (currentTool === 'crop') {
+        isDrawing = true;
+        startX = mouseX;
+        startY = mouseY;
+        cropSelection = { x: mouseX, y: mouseY, w: 0, h: 0 };
+        document.getElementById('confirm-crop-btn').style.display = 'none';
+        redraw();
+        return;
+    }
+
     isDrawing = true;
     startX = mouseX;
     startY = mouseY;
@@ -1192,6 +1264,16 @@ canvas.addEventListener('mousemove', (e) => {
             redraw();
             return;
         }
+        return;
+    }
+
+    if (currentTool === 'crop') {
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        cropSelection = { x, y, w, h };
+        redraw();
         return;
     }
 
@@ -1382,6 +1464,17 @@ canvas.addEventListener('mouseup', (e) => {
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
 
+    if (currentTool === 'crop') {
+        isDrawing = false;
+        if (cropSelection && cropSelection.w > 10 && cropSelection.h > 10) {
+            document.getElementById('confirm-crop-btn').style.display = 'block';
+        } else {
+            cropSelection = null;
+            redraw();
+        }
+        return;
+    }
+
     if (['line', 'rect', 'circle', 'arrow'].includes(currentTool)) {
         shapes.push(createShape(currentTool, startX, startY, currentX, currentY, false));
     }
@@ -1566,6 +1659,49 @@ if (manualBtn && manualModal && closeManual) {
         }
     });
 }
+
+// Crop Actions
+document.getElementById('confirm-crop-btn').addEventListener('click', () => {
+    if (!cropSelection) return;
+
+    // Shift all shapes
+    const dx = -cropSelection.x;
+    const dy = -cropSelection.y;
+    shapes.forEach(shape => moveShape(shape, dx, dy));
+
+    // Update cropData
+    if (!cropData) {
+        cropData = { x: cropSelection.x, y: cropSelection.y, w: cropSelection.w, h: cropSelection.h };
+    } else {
+        cropData.x += cropSelection.x;
+        cropData.y += cropSelection.y;
+        cropData.w = cropSelection.w;
+        cropData.h = cropSelection.h;
+    }
+
+    // Update canvas size
+    canvas.width = cropSelection.w;
+    canvas.height = cropSelection.h;
+
+    // Reset tool
+    cropSelection = null;
+    currentTool = 'select';
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tool-select').classList.add('active');
+    document.getElementById('crop-actions').style.display = 'none';
+
+    redraw();
+    saveState();
+});
+
+document.getElementById('cancel-crop-btn').addEventListener('click', () => {
+    cropSelection = null;
+    currentTool = 'select';
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tool-select').classList.add('active');
+    document.getElementById('crop-actions').style.display = 'none';
+    redraw();
+});
 
 document.getElementById('btn-undo').addEventListener('click', undo);
 document.getElementById('btn-redo').addEventListener('click', redo);
