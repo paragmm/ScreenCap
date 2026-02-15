@@ -183,7 +183,7 @@ function redraw() {
 
     // Draw crop overlay if active
     if (currentTool === 'crop' && cropSelection) {
-        drawCropOverlayInternal(cropSelection, ctx, canvas.width, canvas.height);
+        drawCropOverlayInternal(ctx, cropSelection, canvas.width, canvas.height);
     }
 }
 
@@ -421,7 +421,8 @@ function drawShape(shape) {
 }
 
 function drawSelectionHighlight(shape) {
-    drawSelectionHighlightInternal(ctx, shape, RESIZE_HANDLE_SIZE);
+    const bounds = getShapeBounds(shape);
+    drawSelectionHighlightInternal(ctx, bounds, RESIZE_HANDLE_SIZE);
 }
 
 function updateCursor(mouseX, mouseY) {

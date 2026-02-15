@@ -7,6 +7,8 @@ export function drawShape(ctx, shape, hexToRGBA) {
     ctx.strokeStyle = strokeRGBA;
     ctx.lineWidth = shape.thickness;
     ctx.fillStyle = fillRGBA;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
 
     switch (shape.type) {
         case 'line':

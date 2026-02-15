@@ -16,18 +16,31 @@ export function hexToRGBA(hex, opacity) {
 }
 
 export function drawArrow(x1, y1, x2, y2, context, thickness) {
-    const headlen = 15;
-    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headlen = 10 + (thickness || 3) * 1.5;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const L = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    context.lineCap = 'butt';
+    context.lineJoin = 'miter';
+    context.lineWidth = thickness;
+
+    // Shorten the shaft so its end doesn't blunt the sharp tip
+    const shaftEndX = L > headlen ? x2 - (headlen * 0.7) * Math.cos(angle) : x1;
+    const shaftEndY = L > headlen ? y2 - (headlen * 0.7) * Math.sin(angle) : y1;
+
+    // Draw the arrow shaft
     context.beginPath();
     context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
-    context.lineWidth = thickness;
+    context.lineTo(shaftEndX, shaftEndY);
     context.stroke();
 
+    // Draw the arrow head (filled triangle)
     context.beginPath();
     context.moveTo(x2, y2);
-    context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
-    context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+    context.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 7), y2 - headlen * Math.sin(angle - Math.PI / 7));
+    context.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 7), y2 - headlen * Math.sin(angle + Math.PI / 7));
     context.closePath();
     context.fillStyle = context.strokeStyle;
     context.fill();
