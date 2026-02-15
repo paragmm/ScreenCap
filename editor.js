@@ -1119,7 +1119,10 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
             shape.x1 = x1; shape.y1 = y1; shape.x2 = x2; shape.y2 = y2;
             break;
         case 'rect':
-            shape.x = x1; shape.y = y1; shape.w = x2 - x1; shape.h = y2 - y1;
+            shape.x = Math.min(x1, x2);
+            shape.y = Math.min(y1, y2);
+            shape.w = Math.abs(x2 - x1);
+            shape.h = Math.abs(y2 - y1);
             shape.borderRadius = {
                 tl: parseInt(document.getElementById('radius-tl').value) || 0,
                 tr: parseInt(document.getElementById('radius-tr').value) || 0,
@@ -1130,6 +1133,12 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
         case 'circle':
             shape.x = x1; shape.y = y1;
             shape.r = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            break;
+        case 'oval':
+            shape.x = x1 + (x2 - x1) / 2;
+            shape.y = y1 + (y2 - y1) / 2;
+            shape.rx = Math.abs(x2 - x1) / 2;
+            shape.ry = Math.abs(y2 - y1) / 2;
             break;
     }
     return shape;

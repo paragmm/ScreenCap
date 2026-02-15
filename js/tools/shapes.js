@@ -1,8 +1,8 @@
 import { drawArrow as drawArrowUtil } from '../utils.js';
 
 export function drawShape(ctx, shape, hexToRGBA) {
-    const strokeRGBA = hexToRGBA(shape.color, shape.strokeOpacity);
-    const fillRGBA = hexToRGBA(shape.fillColor || '#ffffff00', shape.fillOpacity || 1.0);
+    const strokeRGBA = hexToRGBA(shape.color, shape.strokeOpacity !== undefined ? shape.strokeOpacity : 1.0);
+    const fillRGBA = hexToRGBA(shape.fillColor || '#ffffff00', shape.fillOpacity !== undefined ? shape.fillOpacity : 1.0);
 
     ctx.strokeStyle = strokeRGBA;
     ctx.lineWidth = shape.thickness;
@@ -22,9 +22,10 @@ export function drawShape(ctx, shape, hexToRGBA) {
             break;
         case 'rect':
             ctx.beginPath();
-            if (shape.borderRadius) {
-                const { tl, tr, bl, br } = shape.borderRadius;
-                const x = shape.x, y = shape.y, w = shape.w, h = shape.h;
+            const { tl = 0, tr = 0, bl = 0, br = 0 } = shape.borderRadius || {};
+            const x = shape.x, y = shape.y, w = shape.w, h = shape.h;
+
+            if (tl > 0 || tr > 0 || bl > 0 || br > 0) {
                 ctx.moveTo(x + tl, y);
                 ctx.lineTo(x + w - tr, y);
                 ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
@@ -34,8 +35,9 @@ export function drawShape(ctx, shape, hexToRGBA) {
                 ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
                 ctx.lineTo(x, y + tl);
                 ctx.quadraticCurveTo(x, y, x + tl, y);
+                ctx.closePath();
             } else {
-                ctx.rect(shape.x, shape.y, shape.w, shape.h);
+                ctx.rect(x, y, w, h);
             }
             if (fillRGBA !== 'transparent') ctx.fill();
             ctx.stroke();
