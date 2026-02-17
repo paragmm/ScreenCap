@@ -57,11 +57,28 @@ function getUniqueName(type) {
 
 // UI Control Elements
 const thicknessControls = document.getElementById('thickness-controls');
-const fontControls = document.getElementById('font-controls');
+const fontControls = document.getElementById('format-text-group');
 const fillControlGroup = document.getElementById('fill-control-group');
 const radiusControls = document.getElementById('radius-controls');
 const layersSidebar = document.getElementById('layers-sidebar');
 const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+
+// Ribbon Controls
+const ribbonTabs = document.querySelectorAll('.ribbon-tab');
+const ribbonContents = document.querySelectorAll('.ribbon-content');
+
+// Tab Switching
+ribbonTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+
+        ribbonTabs.forEach(t => t.classList.remove('active'));
+        ribbonContents.forEach(c => c.classList.remove('active'));
+
+        tab.classList.add('active');
+        document.getElementById(`tab-${targetTab}`).classList.add('active');
+    });
+});
 
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
@@ -154,10 +171,17 @@ function applyState(state) {
 }
 
 function updateHistoryButtons() {
-    const btnUndo = document.getElementById('btn-undo');
-    const btnRedo = document.getElementById('btn-redo');
-    if (btnUndo) btnUndo.style.opacity = historyIndex > 0 ? '1' : '0.3';
-    if (btnRedo) btnRedo.style.opacity = historyIndex < history.length - 1 ? '1' : '0.3';
+    const btnUndoRibbon = document.getElementById('btn-undo-ribbon');
+    const btnRedoRibbon = document.getElementById('btn-redo-ribbon');
+
+    if (btnUndoRibbon) {
+        btnUndoRibbon.disabled = historyIndex <= 0;
+        btnUndoRibbon.style.opacity = historyIndex > 0 ? '1' : '0.3';
+    }
+    if (btnRedoRibbon) {
+        btnRedoRibbon.disabled = historyIndex >= history.length - 1;
+        btnRedoRibbon.style.opacity = historyIndex < history.length - 1 ? '1' : '0.3';
+    }
 }
 
 function redraw() {
@@ -194,21 +218,22 @@ function updateUIForSelection(shape) {
         updateFontInputsFromShape(shape);
         updateRadiusInputsFromShape(shape);
 
-        // Update group visibilities
-        radiusControls.style.display = (shape.type === 'rect') ? 'flex' : 'none';
+        // Switch to Format tab automatically when something is selected
+        document.querySelector('.ribbon-tab[data-tab="format"]').click();
+
+        // Update group visibilities inside Format tab
+        document.getElementById('format-radius-group').style.display = (shape.type === 'rect') ? 'flex' : 'none';
 
         if (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval') {
-            fillControlGroup.style.display = 'flex';
-        } else {
-            fillControlGroup.style.display = 'none';
+            document.getElementById('format-style-group').style.display = 'flex';
         }
 
         if (shape.type === 'text' || shape.type === 'textarea') {
-            thicknessControls.style.display = 'none';
-            fontControls.style.display = 'flex';
+            document.getElementById('format-pen-group').style.display = 'none';
+            document.getElementById('format-text-group').style.display = 'flex';
         } else {
-            thicknessControls.style.display = 'flex';
-            fontControls.style.display = 'none';
+            document.getElementById('format-pen-group').style.display = 'flex';
+            document.getElementById('format-text-group').style.display = 'none';
         }
     } else {
         // Fallback to tool defaults
@@ -216,20 +241,14 @@ function updateUIForSelection(shape) {
         updateFontInputsFromShape(null);
         updateRadiusInputsFromShape(null);
 
-        radiusControls.style.display = (currentTool === 'rect') ? 'flex' : 'none';
+        document.getElementById('format-radius-group').style.display = (currentTool === 'rect') ? 'flex' : 'none';
 
-        if (currentTool === 'rect' || currentTool === 'circle') {
-            fillControlGroup.style.display = 'flex';
+        if (currentTool === 'text' || currentTool === 'textarea') {
+            document.getElementById('format-pen-group').style.display = 'none';
+            document.getElementById('format-text-group').style.display = 'flex';
         } else {
-            fillControlGroup.style.display = 'none';
-        }
-
-        if (currentTool === 'text') {
-            thicknessControls.style.display = 'none';
-            fontControls.style.display = 'flex';
-        } else {
-            thicknessControls.style.display = 'flex';
-            fontControls.style.display = 'none';
+            document.getElementById('format-pen-group').style.display = 'flex';
+            document.getElementById('format-text-group').style.display = 'none';
         }
     }
 }
@@ -497,50 +516,35 @@ function getHandleAtPoint(x, y, shape) {
     return null;
 }
 
-// Tool Selection
-document.querySelectorAll('.tool-btn').forEach(btn => {
+// Tool Selection (Ribbon)
+document.querySelectorAll('.ribbon-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        if (btn.id === 'tool-clear') return;
-        const active = document.querySelector('.tool-btn.active');
+        if (btn.id === 'tool-clear-ribbon' || btn.id === 'btn-undo-ribbon' || btn.id === 'btn-redo-ribbon') return;
+
+        const active = document.querySelector('.ribbon-btn.active');
         if (active) active.classList.remove('active');
         btn.classList.add('active');
-        currentTool = btn.id.replace('tool-', '');
+
+        currentTool = btn.id.replace('tool-', '').replace('-ribbon', '');
 
         selectedShape = null;
         canvas.className = (currentTool === 'select' || currentTool === 'eraser') ? 'selecting' : '';
-        canvas.style.cursor = ''; // Clear inline cursor
-        updateCursor(); // Update based on new tool
+        canvas.style.cursor = '';
+        updateCursor();
         redraw();
 
         const existingInput = document.querySelector('.text-input');
         if (existingInput) existingInput.remove();
 
-        radiusControls.style.display = (currentTool === 'rect') ? 'flex' : 'none';
-
-        updateThicknessInputFromShape(null);
-        updateFontInputsFromShape(null);
-
-        if (currentTool === 'rect' || currentTool === 'circle') {
-            fillControlGroup.style.display = 'flex';
-        } else {
-            fillControlGroup.style.display = 'none';
-        }
-
-        if (currentTool === 'text' || currentTool === 'textarea') {
-            thicknessControls.style.display = 'none';
-            fontControls.style.display = 'flex';
-        } else {
-            thicknessControls.style.display = 'flex';
-            fontControls.style.display = 'none';
-        }
+        updateUIForSelection(null);
 
         // Handle crop actions visibility
-        const cropActions = document.getElementById('crop-actions');
+        const cropActions = document.getElementById('crop-actions-ribbon');
         if (currentTool === 'crop') {
             cropActions.style.display = 'flex';
-            document.getElementById('confirm-crop-btn').style.display = 'none'; // Hide until area selected
+            document.getElementById('confirm-crop-btn').style.display = 'none';
         } else {
-            cropActions.style.display = 'none';
+            if (cropActions) cropActions.style.display = 'none';
             cropSelection = null;
             redraw();
         }
@@ -713,7 +717,7 @@ radiusSync.addEventListener('change', () => {
     }
 });
 
-document.getElementById('tool-clear').addEventListener('click', () => {
+document.getElementById('tool-clear-ribbon').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all shapes?')) {
         shapes = [];
         selectedShape = null;
@@ -724,6 +728,9 @@ document.getElementById('tool-clear').addEventListener('click', () => {
         updateLayersList();
     }
 });
+
+document.getElementById('btn-undo-ribbon').addEventListener('click', undo);
+document.getElementById('btn-redo-ribbon').addEventListener('click', redo);
 
 document.getElementById('line-thickness').addEventListener('input', (e) => {
     const val = parseInt(e.target.value) || 1;
@@ -1435,9 +1442,9 @@ document.getElementById('confirm-crop-btn').addEventListener('click', () => {
     // Reset tool
     cropSelection = null;
     currentTool = 'select';
-    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById('tool-select').classList.add('active');
-    document.getElementById('crop-actions').style.display = 'none';
+    document.querySelectorAll('.ribbon-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tool-select-ribbon').classList.add('active');
+    document.getElementById('crop-actions-ribbon').style.display = 'none';
 
     redraw();
     saveState();
@@ -1446,14 +1453,13 @@ document.getElementById('confirm-crop-btn').addEventListener('click', () => {
 document.getElementById('cancel-crop-btn').addEventListener('click', () => {
     cropSelection = null;
     currentTool = 'select';
-    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById('tool-select').classList.add('active');
-    document.getElementById('crop-actions').style.display = 'none';
+    document.querySelectorAll('.ribbon-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tool-select-ribbon').classList.add('active');
+    document.getElementById('crop-actions-ribbon').style.display = 'none';
     redraw();
 });
 
-document.getElementById('btn-undo').addEventListener('click', undo);
-document.getElementById('btn-redo').addEventListener('click', redo);
+// History buttons (no longer needed here as they are added in the ribbon section)
 
 // Initial UI state for undo/redo
 updateHistoryButtons();
