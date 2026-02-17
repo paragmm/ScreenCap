@@ -14,7 +14,8 @@ Developed by **Parag Dhali**.
 - **Smart Context**: Preserves the original tab's dimensions and clarity.
 
 ### 🎨 Advanced Editing Suite
-A full-featured toolbar with glassmorphism aesthetics and precise controls:
+A full-featured **Ribbon Interface** with glassmorphism aesthetics and intuitive organization:
+- **Home Tab**: Access all primary drawing and formatting tools in one place.
 - **Undo & Redo**: Fully non-destructive workflow with deep history tracking.
 - **Select Tool**: Manipulate, resize, and move objects on the canvas with intuitive handles.
 - **Pen & Eraser**: Fluid freehand drawing and precision element removal.
@@ -33,13 +34,15 @@ A full-featured toolbar with glassmorphism aesthetics and precise controls:
   - **Quick Selection & Deletion**: Instantly select or remove any object directly from the layers panel index.
 
 ### ⚙️ Precision Controls
+- **Zoom Tools**: dedicated **Zoom In** and **Zoom Out** buttons for detailed editing or broad overviews.
+- **Canvas Scrolling**: Intelligent scrollbars that appear only when needed, allowing you to navigate large captures on small screens with ease.
 - **Smart Sizing**: Adjustable line thickness from 1px to 20px.
 - **Corner Styling**: Individual corner radius controls for rectangles (Top-Left, Top-Right, etc.) with a sync toggle.
 - **Dynamic Color System**:
   - Independent Stroke and Fill colors.
   - Granular opacity sliders (0-100%) for both stroke and fill.
   - Instant toggle for shape filling.
-- **Modern UI**: A light-themed, dotted grid editor background for better alignment, paired with a sophisticated dark-themed glassmorphic toolbar.
+- **Modern UI**: A light-themed, dotted grid editor background for better alignment, paired with a sophisticated dark-themed glassmorphic ribbon.
 
 ---
 
