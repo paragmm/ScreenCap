@@ -106,9 +106,12 @@ document.querySelectorAll('.ribbon-content').forEach(content => {
     });
 });
 
+// Check if we are opening specifically for snapshots
+const isOpeningSnapshots = new URLSearchParams(window.location.search).get('tab') === 'snapshots';
+
 // Load image from storage
 chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
-    if (result.capturedImage) {
+    if (result.capturedImage && !isOpeningSnapshots) {
         img.src = result.capturedImage;
         cropData = result.cropData;
         img.onload = () => {
@@ -123,6 +126,10 @@ chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
             redraw();
             updateLayersList();
         };
+    } else {
+        // If opening snapshots or no image, hide canvas until something is restored
+        canvas.style.display = 'none';
+        redraw();
     }
 });
 
@@ -2129,6 +2136,7 @@ function restoreSnapshot(id) {
     // Restore state
     img = new Image();
     img.onload = () => {
+        canvas.style.display = 'block';
         shapes = JSON.parse(JSON.stringify(snapshot.shapes));
         cropData = snapshot.cropData ? JSON.parse(JSON.stringify(snapshot.cropData)) : null;
         canvas.width = snapshot.width;
