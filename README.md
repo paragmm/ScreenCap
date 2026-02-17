@@ -9,97 +9,60 @@ Developed by **Parag Dhali**.
 ## ✨ Key Features
 
 ### 📸 Pro Capture
-- **Instant Screenshot**: Capture your current tab with a single click.
+- **Multiple Capture Modes**:
+  - **Visible Area**: Instant viewport snapshot.
+  - **Selective Area**: Custom region selection with precision crosshairs.
+  - **Full Page**: Capture the entire scrollable document into one high-resolution image.
 - **High Resolution**: High-fidelity captures ensuring clarity for documentation or sharing.
-- **Smart Context**: Preserves the original tab's dimensions and clarity.
 
 ### 🎨 Advanced Editing Suite
 A full-featured **Ribbon Interface** with glassmorphism aesthetics and intuitive organization:
 - **Home Tab**: Access all primary drawing and formatting tools in one place.
+- **Snapshots Tab**: A dedicated history manager for your design sessions.
 - **Undo & Redo**: Fully non-destructive workflow with deep history tracking.
 - **Select Tool**: Manipulate, resize, and move objects on the canvas with intuitive handles.
   - **Shape Rotation**: Every shape features a rotation handle for precise angular adjustments.
-  - **Anchor-Point Resizing**: Advanced logic ensures that when resizing a rotated shape, the opposite side remains pinned to its world-space position for maximum precision.
+  - **Anchor-Point Resizing**: Advanced logic ensures that when resizing a rotated shape, the opposite side remains pinned to its world-space position.
 - **Pen & Eraser**: Fluid freehand drawing and precision element removal.
-- **Shapes**:
-  - **Line & Arrow**: Perfect for highlighting directions or connections.
-  - **Rectangle & Circle/Oval**: Clean geometric annotations with advanced styling. Supports rotation and individual corner formatting.
+- **Shapes**: Line, Arrow, Rectangle, Circle, Oval, and Polygon (3 to 20 sides).
 - **Rich Text Tool**: 
-  - Dynamic in-place editing.
-  - Variety of fonts (Inter, Arial, Georgia, Monospace).
-  - Advanced styling: **Bold**, *Italic*, and <u>Underline</u>.
-  - Granular font sizing and real-time preview.
+  - Dynamic in-place editing and text-wrapping area boxes.
+  - Variety of fonts and styling: **Bold**, *Italic*, and <u>Underline</u>.
 - **Layer Management System**:
-  - **Dynamic Layer List**: View all shapes and text with unique, automatically generated names.
-  - **Drag-and-Drop Reordering**: Change the Z-index of elements by simply reordering them in the sidebar.
-  - **In-place Renaming**: **Double-click** any layer item to rename it for better organization.
-  - **Quick Selection & Deletion**: Instantly select or remove any object directly from the layers panel index.
+  - **Dynamic Layer List**: View all shapes and text with unique names.
+  - **Drag-and-Drop Reordering**: Change the Z-index by simply reordering layers.
+  - **In-place Renaming**: **Double-click** any layer item to rename it.
 
-### ⚙️ Precision Controls
-- **Zoom Tools**: dedicated **Zoom In** and **Zoom Out** buttons for detailed editing or broad overviews.
-- **Canvas Scrolling**: Intelligent scrollbars that appear only when needed, allowing you to navigate large captures on small screens with ease.
-- **Smart Sizing**: Adjustable line thickness from 1px to 20px.
-- **Corner Styling**: Individual corner radius controls for rectangles (Top-Left, Top-Right, etc.) with a sync toggle.
-- **Dynamic Color System**:
-  - Independent Stroke and Fill colors.
-  - Granular opacity sliders (0-100%) for both stroke and fill.
-  - Instant toggle for shape filling.
-- **Modern UI**: A light-themed, dotted grid editor background for better alignment, paired with a sophisticated dark-themed glassmorphic ribbon.
+### 💾 Smart Snapshots & Continuity
+- **Unlimited Design History**: Save unlimited design states directly in your browser.
+- **Automatic Versioning**: Saving your final image automatically creates a restorable design backup.
+- **Smart Overwriting**: Editing a restored snapshot and saving again will intelligently update the existing version rather than cluttering your history.
+- **Visual Library**: Browse your history with high-quality thumbnails in the Snapshots ribbon or the extension popup.
+- **Dotted Workspace**: Enter the Snapshots tab directly from the popup to see a clean, dotted background workspace dedicated to browsing your archives.
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-Speed up your workflow with these native shortcuts:
-
 | Shortcut | Action |
 | :--- | :--- |
 | **Ctrl + Z** | Undo last action |
 | **Ctrl + Y** | Redo last action |
-| **Ctrl + C** | Copy selected shape |
-| **Ctrl + V** | Paste copied shape |
+| **Ctrl + C / V** | Copy / Paste selected shape |
 | **Ctrl + Shift + C** | Copy canvas to clipboard |
 | **Del / Backspace** | Delete selected object |
 | **Esc** | Deselect object / Close manual |
-
----
-
-## 🛠️ Tech Stack
-
-- **Core**: JavaScript (ES6+), HTML5, CSS3.
-- **API**: Chrome Extension Manifesto V3.
-- **Styling**: Vanilla CSS with modern variables, flexbox/grid layouts, and glassmorphism.
-- **Rendering**: Canvas API for high-performance image manipulation and object tracking.
-
----
-
-## 🚀 Installation (Development Mode)
-
-1. Clone or download this repository.
-2. Open Google Chrome and navigate to `chrome://extensions/`.
-3. Enable **"Developer mode"** (toggle in the top right).
-4. Click **"Load unpacked"** and select the root directory of this project.
-5. The **ScreenCap** icon should now appear in your extensions list.
+| **S / P / E / X** | Select / Pen / Eraser / Crop tools |
+| **R / C / L / A / T** | Rect / Circle / Line / Arrow / Text tools |
 
 ---
 
 ## 📖 Usage Guide
 
-1. **Capture**: Click the ScreenCap icon in your browser toolbar to capture the active tab.
-2. **Edit**: Use the floating toolbar to annotate your screenshot.
-   - **Select & Resize**: Use the Select tool to move or resize any element.
-   - **Styling**: Adjust colors, thickness, or opacity from the contextual controls.
-   - **Text**: Click to add text, or click existing text to edit it directly.
-3. **Save & Share**:
-   - **Save Image**: Download your work as a PNG.
-   - **Copy to Clipboard**: Use the clipboard icon or `Ctrl + Shift + C` to instantly copy the final image for pasting into Slack, Discord, or emails.
-4. **User Manual**: Need help? Click the `?` icon in the toolbar for an integrated guide.
-
----
-
-## 🛡️ License
-
-This project is created for demonstration and personal use. Feel free to explore and modify!
+1. **Capture**: Click the ScreenCap icon in your browser toolbar. Choose between **Visible**, **Full Page**, or **Selective**.
+2. **Edit**: Use the ribbon to annotate your screenshot. All elements are vector-like and can be moved at any time.
+3. **Save**: Download your work as PNG. A snapshot is automatically saved to your browser during this process.
+4. **Restore**: Open the extension popup and click the **Snapshots** button (available if history exists) to browse and restore previous designs.
 
 ---
 
