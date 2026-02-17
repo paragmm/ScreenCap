@@ -20,6 +20,7 @@ let isStrokeEnabled = true;
 let currentThickness = 3;
 let shapes = [];
 let selectedShape = null;
+let selectedShapes = [];
 let cropData = null;
 let isResizing = false;
 let activeHandle = null;
@@ -57,7 +58,8 @@ let typeCounters = {
     pen: 0,
     text: 0,
     textarea: 0,
-    polygon: 0
+    polygon: 0,
+    group: 0
 };
 
 function getUniqueName(type) {
@@ -257,7 +259,7 @@ function redraw() {
     // Draw all shapes
     shapes.forEach(shape => {
         drawShape(shape);
-        if (shape === selectedShape) {
+        if (shape === selectedShape || selectedShapes.includes(shape)) {
             drawSelectionHighlight(shape);
         }
     });
@@ -265,6 +267,7 @@ function redraw() {
     // We don't call updateLayersList here to avoid infinite loops 
     // but we might want to sync the "active" state in sidebar.
     syncSidebarSelection();
+    updateSidebarActionButtons();
 
     // Draw crop overlay if active
     if (currentTool === 'crop' && cropSelection) {
@@ -320,8 +323,26 @@ function syncSidebarSelection() {
     const items = document.querySelectorAll('.layer-item');
     items.forEach(item => {
         const index = parseInt(item.dataset.index);
-        item.classList.toggle('active', shapes[index] === selectedShape);
+        const shape = shapes[index];
+        item.classList.toggle('active', shape === selectedShape || selectedShapes.includes(shape));
     });
+}
+
+
+function updateSidebarActionButtons() {
+    const groupBtn = document.getElementById('group-layers-btn');
+    const ungroupBtn = document.getElementById('ungroup-layers-btn');
+
+    if (groupBtn) {
+        groupBtn.disabled = selectedShapes.length < 2;
+        groupBtn.style.opacity = selectedShapes.length >= 2 ? '1' : '0.5';
+    }
+
+    if (ungroupBtn) {
+        const hasGroup = selectedShapes.some(s => s.type === 'group') || (selectedShape && selectedShape.type === 'group');
+        ungroupBtn.disabled = !hasGroup;
+        ungroupBtn.style.opacity = hasGroup ? '1' : '0.5';
+    }
 }
 
 function updateLayersList() {
@@ -339,7 +360,7 @@ function updateLayersList() {
 
         const item = document.createElement('div');
         item.className = 'layer-item';
-        if (shape === selectedShape) item.classList.add('active');
+        if (selectedShapes.includes(shape)) item.classList.add('active');
         item.dataset.index = index;
         item.draggable = true;
 
@@ -359,8 +380,22 @@ function updateLayersList() {
             </div>
         `;
 
-        item.addEventListener('click', () => {
-            selectedShape = shapes[index];
+        item.addEventListener('click', (e) => {
+            if (e.ctrlKey || e.shiftKey) {
+                if (selectedShapes.includes(shape)) {
+                    selectedShapes = selectedShapes.filter(s => s !== shape);
+                } else {
+                    selectedShapes.push(shape);
+                }
+                if (selectedShapes.length === 1) {
+                    selectedShape = selectedShapes[0];
+                } else {
+                    selectedShape = null;
+                }
+            } else {
+                selectedShape = shape;
+                selectedShapes = [shape];
+            }
             updateUIForSelection(selectedShape);
             redraw();
         });
@@ -441,6 +476,7 @@ function getLayerIcon(shape) {
         case 'text': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`;
         case 'textarea': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="13" y2="16"></line></svg>`;
         case 'polygon': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><path d="M12 2L2 9l4 11h12l4-11z"></path></svg>`;
+        case 'group': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="4" y="4" width="6" height="6"></rect><rect x="14" y="4" width="6" height="6"></rect><rect x="4" y="14" width="6" height="6"></rect><rect x="14" y="14" width="6" height="6"></rect></svg>`;
         default: return '';
     }
 }
@@ -513,6 +549,11 @@ function drawShape(shape) {
         case 'oval':
         case 'polygon':
             drawShapeInternal(ctx, shape, hexToRGBA);
+            break;
+        case 'group':
+            if (shape.shapes) {
+                shape.shapes.forEach(s => drawShape(s));
+            }
             break;
     }
     ctx.restore();
@@ -1121,7 +1162,18 @@ canvas.addEventListener('mousedown', (e) => {
             }
 
             // Select Tool logic
-            selectedShape = clickedShape;
+            if (e.shiftKey || e.ctrlKey) {
+                if (selectedShapes.includes(clickedShape)) {
+                    selectedShapes = selectedShapes.filter(s => s !== clickedShape);
+                } else {
+                    selectedShapes.push(clickedShape);
+                }
+                selectedShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
+            } else {
+                selectedShape = clickedShape;
+                selectedShapes = [clickedShape];
+            }
+
             isDrawing = true;
             dragStartX = mouseX;
             dragStartY = mouseY;
@@ -1130,6 +1182,7 @@ canvas.addEventListener('mousedown', (e) => {
             return;
         } else {
             selectedShape = null;
+            selectedShapes = [];
             updateUIForSelection(null);
             redraw();
             return;
@@ -1420,6 +1473,81 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
         case 'pen':
             resizePen(shape, handleType, dx, dy);
             break;
+        case 'group':
+            resizeGroup(shape, handleType, dx, dy);
+            break;
+    }
+}
+
+function resizeGroup(group, handleType, dx, dy) {
+    const bounds = getShapeBounds(group);
+    const oldW = bounds.w;
+    const oldH = bounds.h;
+
+    if (oldW === 0 || oldH === 0) return;
+
+    // Simulate resizing on a hypothetical rect to get new dimensions
+    const tempRect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
+    resizeRect(tempRect, handleType, dx, dy);
+
+    const newW = tempRect.w;
+    const newH = tempRect.h;
+
+    const sx = newW / oldW;
+    const sy = newH / oldH;
+
+    // Determine anchor point based on handle
+    let anchorX = bounds.x;
+    let anchorY = bounds.y;
+
+    if (handleType.includes('w')) anchorX = bounds.x + bounds.w;
+    if (handleType.includes('n')) anchorY = bounds.y + bounds.h;
+    if (handleType === 'n' || handleType === 's') anchorX = bounds.x + bounds.w / 2;
+    if (handleType === 'w' || handleType === 'e') anchorY = bounds.y + bounds.h / 2;
+
+    group.shapes.forEach(s => scaleShape(s, sx, sy, anchorX, anchorY));
+}
+
+function scaleShape(shape, sx, sy, anchorX, anchorY) {
+    if (shape.type === 'pen') {
+        shape.points.forEach(p => {
+            p.x = anchorX + (p.x - anchorX) * sx;
+            p.y = anchorY + (p.y - anchorY) * sy;
+        });
+    } else if (['line', 'arrow'].includes(shape.type)) {
+        shape.x1 = anchorX + (shape.x1 - anchorX) * sx;
+        shape.y1 = anchorY + (shape.y1 - anchorY) * sy;
+        shape.x2 = anchorX + (shape.x2 - anchorX) * sx;
+        shape.y2 = anchorY + (shape.y2 - anchorY) * sy;
+    } else if (shape.type === 'group') {
+        shape.shapes.forEach(s => scaleShape(s, sx, sy, anchorX, anchorY));
+    } else {
+        const oldX = shape.x;
+        const oldY = shape.y;
+
+        // Scale position
+        shape.x = anchorX + (shape.x - anchorX) * sx;
+        shape.y = anchorY + (shape.y - anchorY) * sy;
+
+        // Scale dimensions
+        if (shape.w !== undefined) shape.w *= sx;
+        if (shape.h !== undefined) shape.h *= sy;
+
+        if (shape.type === 'circle') {
+            if (Math.abs(sx - sy) > 0.001) {
+                shape.type = 'oval';
+                shape.rx = shape.r * Math.abs(sx);
+                shape.ry = shape.r * Math.abs(sy);
+                delete shape.r;
+            } else {
+                shape.r *= Math.abs(sx);
+            }
+        } else if (shape.type === 'oval') {
+            shape.rx *= Math.abs(sx);
+            shape.ry *= Math.abs(sy);
+        } else if (shape.type === 'text' || shape.type === 'textarea') {
+            shape.fontSize *= Math.abs((sx + sy) / 2);
+        }
     }
 }
 
@@ -1428,6 +1556,8 @@ function moveShape(shape, dx, dy) {
         shape.points.forEach(p => { p.x += dx; p.y += dy; });
     } else if (['line', 'arrow'].includes(shape.type)) {
         shape.x1 += dx; shape.y1 += dy; shape.x2 += dx; shape.y2 += dy;
+    } else if (shape.type === 'group') {
+        shape.shapes.forEach(s => moveShape(s, dx, dy));
     } else {
         shape.x += dx; shape.y += dy;
     }
@@ -1572,6 +1702,70 @@ document.getElementById('discard-btn').addEventListener('click', () => {
     }
 });
 
+function groupLayers() {
+    if (selectedShapes.length < 2) return;
+
+    // Create new group
+    const group = {
+        type: 'group',
+        shapes: [...selectedShapes].sort((a, b) => shapes.indexOf(a) - shapes.indexOf(b)),
+        name: getUniqueName('group'),
+        rotation: 0
+    };
+
+    // Find the highest index among selected shapes
+    const indices = selectedShapes.map(s => shapes.indexOf(s)).sort((a, b) => b - a);
+    const targetIndex = indices[0];
+
+    // Remove selected shapes from main list
+    selectedShapes.forEach(s => {
+        const idx = shapes.indexOf(s);
+        if (idx !== -1) shapes.splice(idx, 1);
+    });
+
+    // Add group at the target index (adjusted for removals)
+    const finalIndex = targetIndex - (selectedShapes.length - 1);
+    shapes.splice(finalIndex >= 0 ? finalIndex : 0, 0, group);
+
+    selectedShape = group;
+    selectedShapes = [group];
+
+    redraw();
+    saveState();
+    updateLayersList();
+}
+
+function ungroupLayers() {
+    let groupToUngroup = null;
+    if (selectedShape && selectedShape.type === 'group') {
+        groupToUngroup = selectedShape;
+    } else if (selectedShapes.length === 1 && selectedShapes[0].type === 'group') {
+        groupToUngroup = selectedShapes[0];
+    }
+
+    if (!groupToUngroup) return;
+
+    const groupIndex = shapes.indexOf(groupToUngroup);
+    if (groupIndex === -1) return;
+
+    // Remove group and add its children back
+    shapes.splice(groupIndex, 1);
+    selectedShapes = [];
+    groupToUngroup.shapes.forEach((s, i) => {
+        shapes.splice(groupIndex + i, 0, s);
+        selectedShapes.push(s);
+    });
+
+    selectedShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
+
+    redraw();
+    saveState();
+    updateLayersList();
+}
+
+document.getElementById('group-layers-btn').addEventListener('click', groupLayers);
+document.getElementById('ungroup-layers-btn').addEventListener('click', ungroupLayers);
+
 // Copy and Paste Logic
 document.addEventListener('keydown', (e) => {
     // Don't trigger if user is typing in a text input or content editable element
@@ -1595,15 +1789,34 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         pasteShape();
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedShape) {
-            const index = shapes.indexOf(selectedShape);
-            if (index !== -1) {
-                shapes.splice(index, 1);
-                selectedShape = null;
-                redraw();
-                saveState();
-                updateUIForSelection(null);
-            }
+        const targets = selectedShapes.length > 0 ? [...selectedShapes] : (selectedShape ? [selectedShape] : []);
+        if (targets.length > 0) {
+            targets.forEach(target => {
+                const index = shapes.indexOf(target);
+                if (index !== -1) shapes.splice(index, 1);
+            });
+            selectedShape = null;
+            selectedShapes = [];
+            redraw();
+            saveState();
+            updateLayersList();
+            updateUIForSelection(null);
+        }
+    } else if (e.key === '=' || e.key === '+') {
+        const target = selectedShape || (selectedShapes.length === 1 ? selectedShapes[0] : null);
+        if (target) {
+            e.preventDefault();
+            resizeShape(target, 'se', 10, 10);
+            redraw();
+            saveState();
+        }
+    } else if (e.key === '-' || e.key === '_') {
+        const target = selectedShape || (selectedShapes.length === 1 ? selectedShapes[0] : null);
+        if (target) {
+            e.preventDefault();
+            resizeShape(target, 'se', -10, -10);
+            redraw();
+            saveState();
         }
     } else if (e.key === 'Escape') {
         if (selectedShape) {

@@ -47,6 +47,15 @@ export function drawArrow(x1, y1, x2, y2, context, thickness) {
 }
 
 export function getShapeBounds(shape) {
+    if (shape.type === 'group') {
+        if (!shape.shapes || shape.shapes.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
+        const allBounds = shape.shapes.map(s => getShapeBounds(s));
+        const minX = Math.min(...allBounds.map(b => b.x));
+        const minY = Math.min(...allBounds.map(b => b.y));
+        const maxX = Math.max(...allBounds.map(b => b.x + b.w));
+        const maxY = Math.max(...allBounds.map(b => b.y + b.h));
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    }
     if (shape.type === 'pen') {
         const xs = shape.points.map(p => p.x);
         const ys = shape.points.map(p => p.y);
@@ -70,8 +79,10 @@ export function getShapeBounds(shape) {
         const width = shape.w || (shape.text.length * (shape.fontSize || 20) * 0.6);
         const height = shape.h || (shape.fontSize || 20) * 1.2;
         return { x: shape.x, y: shape.y, w: width, h: height };
+    } else if (shape.type === 'polygon') {
+        return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
     }
-    return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
+    return { x: shape.x || 0, y: shape.y || 0, w: shape.w || 0, h: shape.h || 0 };
 }
 
 export function getShapeCenter(shape) {
@@ -101,6 +112,10 @@ export function isPointInShape(x, y, shape) {
         const sin = Math.sin(-shape.rotation);
         testX = center.x + dx * cos - dy * sin;
         testY = center.y + dx * sin + dy * cos;
+    }
+
+    if (shape.type === 'group') {
+        return shape.shapes.some(s => isPointInShape(testX, testY, s));
     }
 
     const bounds = getShapeBounds(shape);

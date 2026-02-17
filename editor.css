@@ -602,6 +602,57 @@ input[type="color"]::-webkit-color-swatch {
   width: 64px;
 }
 
+.sidebar-actions {
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.layers-sidebar.collapsed .sidebar-actions {
+  display: none;
+}
+
+.sidebar-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-action-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.1);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.sidebar-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.sidebar-action-btn svg {
+  color: var(--primary);
+  transition: transform 0.2s;
+}
+
+.sidebar-action-btn:hover:not(:disabled) svg {
+  transform: scale(1.1);
+}
+
 .layers-sidebar.collapsed .sidebar-header h3,
 .layers-sidebar.collapsed .sidebar-header .layer-count,
 .layers-sidebar.collapsed .sidebar-footer,
