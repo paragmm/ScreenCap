@@ -364,11 +364,17 @@ function updateLayersList() {
         item.dataset.index = index;
         item.draggable = true;
 
+        let typeLabel = shape.type;
+        if (shape.type === 'group' && shape.shapes) {
+            const memberNames = shape.shapes.map(s => s.name || s.type).join(', ');
+            typeLabel = `Group (${memberNames})`;
+        }
+
         item.innerHTML = `
             <div class="layer-icon">${getLayerIcon(shape)}</div>
             <div class="layer-info">
                 <div class="layer-name">${shape.name}</div>
-                <div class="layer-type">${shape.type}</div>
+                <div class="layer-type" title="${shape.type === 'group' ? typeLabel : ''}">${typeLabel}</div>
             </div>
             <div class="layer-actions">
                 <button class="layer-action-btn delete" title="Delete Layer">
