@@ -1639,27 +1639,33 @@ canvas.addEventListener('dblclick', (e) => {
 });
 
 // Actions
-document.getElementById('save-btn').addEventListener('click', () => {
-    // Temporarily deselect to avoid handles in screenshot
-    const tempSelectedShape = selectedShape;
-    const tempSelectedShapes = [...selectedShapes];
-    selectedShape = null;
-    selectedShapes = [];
-    redraw();
-    updateUIForSelection(null);
-    updateLayersList();
+document.querySelectorAll('[id="save-btn"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Also save a snapshot for future drawing
+        takeSnapshot();
 
-    const link = document.createElement('a');
-    link.download = 'screencap-' + Date.now() + '.png';
-    link.href = canvas.toDataURL();
-    link.click();
+        // Temporarily deselect to avoid handles in screenshot
+        const tempSelectedShape = selectedShape;
+        const tempSelectedShapes = [...selectedShapes];
+        selectedShape = null;
+        selectedShapes = [];
+        redraw();
+        updateUIForSelection(null);
+        updateLayersList();
 
-    // Restore selection
-    selectedShape = tempSelectedShape;
-    selectedShapes = tempSelectedShapes;
-    redraw();
-    updateUIForSelection(selectedShape);
-    updateLayersList();
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'screencap-' + Date.now() + '.png';
+        link.href = dataURL;
+        link.click();
+
+        // Restore selection
+        selectedShape = tempSelectedShape;
+        selectedShapes = tempSelectedShapes;
+        redraw();
+        updateUIForSelection(selectedShape);
+        updateLayersList();
+    });
 });
 
 async function copyToClipboard() {
@@ -2040,3 +2046,150 @@ if (btnZoomOut) {
         setZoom(currentZoom - 0.1);
     });
 }
+
+// --- Snapshots Feature ---
+let snapshots = [];
+
+function initSnapshots() {
+    chrome.storage.local.get(['snapshots'], (result) => {
+        if (result.snapshots) {
+            snapshots = result.snapshots;
+            updateSnapshotsUI();
+        }
+    });
+}
+
+function takeSnapshot() {
+    // Temporarily deselect to avoid handles in thumbnail
+    const tempSelectedShape = selectedShape;
+    const tempSelectedShapes = [...selectedShapes];
+    selectedShape = null;
+    selectedShapes = [];
+    redraw();
+
+    // Create a smaller thumbnail
+    const thumbCanvas = document.createElement('canvas');
+    const thumbCtx = thumbCanvas.getContext('2d');
+    const thumbWidth = 200;
+    const thumbHeight = (canvas.height / canvas.width) * thumbWidth;
+    thumbCanvas.width = thumbWidth;
+    thumbCanvas.height = thumbHeight;
+    thumbCtx.drawImage(canvas, 0, 0, thumbWidth, thumbHeight);
+    const thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.7);
+
+    // Save full state
+    const snapshot = {
+        id: Date.now(),
+        thumbnail: thumbnail,
+        backgroundImage: img.src,
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        cropData: cropData ? JSON.parse(JSON.stringify(cropData)) : null,
+        width: canvas.width,
+        height: canvas.height,
+        timestamp: new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    snapshots.unshift(snapshot);
+
+    chrome.storage.local.set({ snapshots: snapshots }, () => {
+        updateSnapshotsUI();
+        // Feedback
+        const btn = document.getElementById('take-snapshot-btn');
+        const originalText = btn.querySelector('span').innerText;
+        btn.querySelector('span').innerText = 'Saved!';
+        setTimeout(() => {
+            btn.querySelector('span').innerText = originalText;
+        }, 2000);
+    });
+
+    // Restore selection
+    selectedShape = tempSelectedShape;
+    selectedShapes = tempSelectedShapes;
+    redraw();
+}
+
+function restoreSnapshot(id) {
+    const snapshot = snapshots.find(s => s.id === id);
+    if (!snapshot) return;
+
+    if (!confirm('Restore this snapshot? Current unsaved changes will be lost.')) return;
+
+    // Restore state
+    img = new Image();
+    img.onload = () => {
+        shapes = JSON.parse(JSON.stringify(snapshot.shapes));
+        cropData = snapshot.cropData ? JSON.parse(JSON.stringify(snapshot.cropData)) : null;
+        canvas.width = snapshot.width;
+        canvas.height = snapshot.height;
+        selectedShape = null;
+        selectedShapes = [];
+        history = [];
+        historyIndex = -1;
+        saveState(); // Capture as a new history point
+        redraw();
+        updateLayersList();
+    };
+    img.src = snapshot.backgroundImage;
+
+    // Switch to Home tab for editing
+    const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
+    if (homeTab) homeTab.click();
+}
+
+function deleteSnapshot(id, event) {
+    if (event) event.stopPropagation();
+    if (!confirm('Delete this snapshot?')) return;
+
+    snapshots = snapshots.filter(s => s.id !== id);
+    chrome.storage.local.set({ snapshots: snapshots }, () => {
+        updateSnapshotsUI();
+    });
+}
+
+function updateSnapshotsUI() {
+    const list = document.getElementById('snapshots-list');
+    if (!list) return;
+
+    if (snapshots.length === 0) {
+        list.innerHTML = '<div class="no-snapshots">No snapshots saved yet</div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    snapshots.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'snapshot-item';
+        item.title = 'Click to restore state';
+        item.innerHTML = `
+            <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
+            <div class="snapshot-info">
+                <span class="snapshot-time">${s.timestamp}</span>
+                <button class="snapshot-delete-btn" title="Delete snapshot">&times;</button>
+            </div>
+        `;
+
+        item.addEventListener('click', () => restoreSnapshot(s.id));
+        item.querySelector('.snapshot-delete-btn').addEventListener('click', (e) => deleteSnapshot(s.id, e));
+
+        list.appendChild(item);
+    });
+}
+
+// Event Listeners for Snapshots
+const takeSnapshotBtn = document.getElementById('take-snapshot-btn');
+if (takeSnapshotBtn) {
+    takeSnapshotBtn.addEventListener('click', takeSnapshot);
+}
+
+const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
+if (clearSnapshotsBtn) {
+    clearSnapshotsBtn.addEventListener('click', () => {
+        if (confirm('Delete all snapshots?')) {
+            snapshots = [];
+            chrome.storage.local.set({ snapshots: [] }, updateSnapshotsUI);
+        }
+    });
+}
+
+// Initialize Snapshots
+initSnapshots();

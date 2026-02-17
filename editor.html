@@ -20,7 +20,8 @@
                 </svg>
                 <span>Screen</span><span class="brand-highlight">Cap</span>
             </div>
-            <button class="ribbon-tab active" data-tab="home">Home</button>
+            <button class="ribbon-tab" data-tab="home">Home</button>
+            <button class="ribbon-tab" data-tab="snapshots">Snapshots</button>
             <button class="ribbon-tab" data-tab="help">Help</button>
         </div>
 
@@ -326,6 +327,41 @@
                     </button>
                 </div>
                 <div class="ribbon-group-label">Output</div>
+            </div>
+        </div>
+
+        <!-- Snapshots Tab Content -->
+        <div class="ribbon-content" id="tab-snapshots">
+            <div class="ribbon-group">
+                <div class="ribbon-group-content">
+                    <button class="ribbon-btn primary" id="take-snapshot-btn" title="Save Current State">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span>Save State</span>
+                    </button>
+                    <button class="ribbon-btn danger" id="clear-snapshots-btn" title="Clear All History">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6L18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                        </svg>
+                        <span>Clear All</span>
+                    </button>
+                </div>
+                <div class="ribbon-group-label">Snapshots</div>
+            </div>
+
+            <div class="ribbon-group" style="flex: 1; min-width: 300px;">
+                <div class="ribbon-group-content snapshots-list-container" id="snapshots-list">
+                    <!-- Snapshots will be injected here -->
+                    <div class="no-snapshots">No snapshots saved yet</div>
+                </div>
+                <div class="ribbon-group-label">Recently Saved (Restore by Clicking)</div>
             </div>
         </div>
 

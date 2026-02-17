@@ -1328,3 +1328,120 @@ input[type="color"]::-webkit-color-swatch {
   border-right: none;
   padding-right: 20px;
 }
+
+/* Snapshots Styles */
+.snapshots-list-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 10px;
+  max-width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.snapshots-list-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.snapshots-list-container::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+.snapshot-item {
+  flex-shrink: 0;
+  width: 100px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.snapshot-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.snapshot-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+.snapshot-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.snapshot-item:hover .snapshot-thumb {
+  opacity: 1;
+}
+
+.snapshot-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transform: translateY(100%);
+  transition: transform 0.2s;
+}
+
+.snapshot-item:hover .snapshot-info {
+  transform: translateY(0);
+}
+
+.snapshot-time {
+  font-size: 8px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.snapshot-delete-btn {
+  width: 14px;
+  height: 14px;
+  background: var(--danger);
+  border: none;
+  border-radius: 2px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.snapshot-delete-btn:hover {
+  background: #dc2626;
+}
+
+.no-snapshots {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.ribbon-btn.primary {
+  color: var(--primary);
+}
+
+.ribbon-btn.primary:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
