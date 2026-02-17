@@ -1642,8 +1642,12 @@ canvas.addEventListener('dblclick', (e) => {
 document.getElementById('save-btn').addEventListener('click', () => {
     // Temporarily deselect to avoid handles in screenshot
     const tempSelectedShape = selectedShape;
+    const tempSelectedShapes = [...selectedShapes];
     selectedShape = null;
+    selectedShapes = [];
     redraw();
+    updateUIForSelection(null);
+    updateLayersList();
 
     const link = document.createElement('a');
     link.download = 'screencap-' + Date.now() + '.png';
@@ -1652,14 +1656,21 @@ document.getElementById('save-btn').addEventListener('click', () => {
 
     // Restore selection
     selectedShape = tempSelectedShape;
+    selectedShapes = tempSelectedShapes;
     redraw();
+    updateUIForSelection(selectedShape);
+    updateLayersList();
 });
 
 async function copyToClipboard() {
     // Temporarily deselect to avoid handles in screenshot
     const tempSelectedShape = selectedShape;
+    const tempSelectedShapes = [...selectedShapes];
     selectedShape = null;
+    selectedShapes = [];
     redraw();
+    updateUIForSelection(null);
+    updateLayersList();
 
     canvas.toBlob(async (blob) => {
         try {
@@ -1683,7 +1694,10 @@ async function copyToClipboard() {
         } finally {
             // Restore selection
             selectedShape = tempSelectedShape;
+            selectedShapes = tempSelectedShapes;
             redraw();
+            updateUIForSelection(selectedShape);
+            updateLayersList();
         }
     }, 'image/png');
 }
