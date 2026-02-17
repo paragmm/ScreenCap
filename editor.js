@@ -360,6 +360,7 @@ function updateLayersList() {
 
         const item = document.createElement('div');
         item.className = 'layer-item';
+        if (shape.type === 'group') item.classList.add('is-group');
         if (selectedShapes.includes(shape)) item.classList.add('active');
         item.dataset.index = index;
         item.draggable = true;

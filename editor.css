@@ -816,6 +816,16 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 0 0 1px var(--primary);
 }
 
+.layer-item.is-group {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
+}
+
+.layer-item.is-group .layer-icon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
 .layer-item.dragging {
   opacity: 0.5;
   background: var(--primary);
