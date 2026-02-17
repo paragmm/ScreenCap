@@ -2049,6 +2049,7 @@ if (btnZoomOut) {
 
 // --- Snapshots Feature ---
 let snapshots = [];
+let activeSnapshotId = null;
 
 function initSnapshots() {
     chrome.storage.local.get(['snapshots'], (result) => {
@@ -2079,7 +2080,7 @@ function takeSnapshot() {
 
     // Save full state
     const snapshot = {
-        id: Date.now(),
+        id: activeSnapshotId || Date.now(),
         thumbnail: thumbnail,
         backgroundImage: img.src,
         shapes: JSON.parse(JSON.stringify(shapes)),
@@ -2089,7 +2090,18 @@ function takeSnapshot() {
         timestamp: new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    snapshots.unshift(snapshot);
+    if (activeSnapshotId) {
+        const index = snapshots.findIndex(s => s.id === activeSnapshotId);
+        if (index !== -1) {
+            snapshots[index] = snapshot;
+        } else {
+            snapshots.unshift(snapshot);
+            activeSnapshotId = snapshot.id;
+        }
+    } else {
+        snapshots.unshift(snapshot);
+        activeSnapshotId = snapshot.id;
+    }
 
     chrome.storage.local.set({ snapshots: snapshots }, () => {
         updateSnapshotsUI();
@@ -2131,6 +2143,9 @@ function restoreSnapshot(id) {
     };
     img.src = snapshot.backgroundImage;
 
+    activeSnapshotId = snapshot.id;
+    updateSnapshotsUI();
+
     // Switch to Home tab for editing
     const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
     if (homeTab) homeTab.click();
@@ -2141,6 +2156,7 @@ function deleteSnapshot(id, event) {
     if (!confirm('Delete this snapshot?')) return;
 
     snapshots = snapshots.filter(s => s.id !== id);
+    if (activeSnapshotId === id) activeSnapshotId = null;
     chrome.storage.local.set({ snapshots: snapshots }, () => {
         updateSnapshotsUI();
     });
@@ -2159,7 +2175,8 @@ function updateSnapshotsUI() {
     snapshots.forEach(s => {
         const item = document.createElement('div');
         item.className = 'snapshot-item';
-        item.title = 'Click to restore state';
+        if (s.id === activeSnapshotId) item.classList.add('active');
+        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore state';
         item.innerHTML = `
             <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
             <div class="snapshot-info">

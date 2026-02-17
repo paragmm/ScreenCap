@@ -1374,8 +1374,8 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .snapshot-item.active {
-  border-color: var(--primary);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+  border-color: var(--danger);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .snapshot-thumb {
