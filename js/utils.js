@@ -74,9 +74,37 @@ export function getShapeBounds(shape) {
     return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
 }
 
+export function getShapeCenter(shape) {
+    if (shape.type === 'circle' || shape.type === 'oval') {
+        return { x: shape.x, y: shape.y };
+    }
+    if (shape.type === 'line' || shape.type === 'arrow') {
+        return { x: (shape.x1 + shape.x2) / 2, y: (shape.y1 + shape.y2) / 2 };
+    }
+    const bounds = getShapeBounds(shape);
+    return {
+        x: bounds.x + bounds.w / 2,
+        y: bounds.y + bounds.h / 2
+    };
+}
+
 export function isPointInShape(x, y, shape) {
+    let testX = x;
+    let testY = y;
+
+    if (shape.rotation) {
+        const center = getShapeCenter(shape);
+        // Rotate point (x, y) around center by -rotation
+        const dx = x - center.x;
+        const dy = y - center.y;
+        const cos = Math.cos(-shape.rotation);
+        const sin = Math.sin(-shape.rotation);
+        testX = center.x + dx * cos - dy * sin;
+        testY = center.y + dx * sin + dy * cos;
+    }
+
     const bounds = getShapeBounds(shape);
     const padding = 10;
-    return x >= bounds.x - padding && x <= bounds.x + bounds.w + padding &&
-        y >= bounds.y - padding && y <= bounds.y + bounds.h + padding;
+    return testX >= bounds.x - padding && testX <= bounds.x + bounds.w + padding &&
+        testY >= bounds.y - padding && testY <= bounds.y + bounds.h + padding;
 }

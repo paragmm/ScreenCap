@@ -1,4 +1,4 @@
-import { hexToRGBA, getShapeBounds, isPointInShape } from './js/utils.js';
+import { hexToRGBA, getShapeBounds, isPointInShape, getShapeCenter } from './js/utils.js';
 import { drawPen, resizePen } from './js/tools/pen.js';
 import { drawShape as drawShapeInternal, resizeRect, resizeOval, resizeLine } from './js/tools/shapes.js';
 import { drawText, drawTextArea, resizeText } from './js/tools/text.js';
@@ -36,6 +36,7 @@ let historyIndex = -1;
 let userManuallyCollapsedSidebar = false;
 let cropSelection = null;
 let isCropping = false;
+let isRotating = false;
 let currentSides = 5;
 let currentZoom = 1;
 
@@ -487,6 +488,14 @@ function handleDragEnd() {
 }
 
 function drawShape(shape) {
+    ctx.save();
+    if (shape.rotation) {
+        const center = getShapeCenter(shape);
+        ctx.translate(center.x, center.y);
+        ctx.rotate(shape.rotation);
+        ctx.translate(-center.x, -center.y);
+    }
+
     switch (shape.type) {
         case 'pen':
             drawPen(ctx, shape, hexToRGBA);
@@ -506,11 +515,12 @@ function drawShape(shape) {
             drawShapeInternal(ctx, shape, hexToRGBA);
             break;
     }
+    ctx.restore();
 }
 
 function drawSelectionHighlight(shape) {
     const bounds = getShapeBounds(shape);
-    drawSelectionHighlightInternal(ctx, bounds, RESIZE_HANDLE_SIZE);
+    drawSelectionHighlightInternal(ctx, bounds, RESIZE_HANDLE_SIZE, shape.rotation || 0);
 }
 
 function updateCursor(mouseX, mouseY) {
@@ -527,7 +537,7 @@ function updateCursor(mouseX, mouseY) {
     const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
     if (handle && currentTool !== 'eraser' && currentTool !== 'crop') {
         const bounds = getShapeBounds(selectedShape);
-        const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
+        const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, selectedShape.rotation || 0);
         canvas.style.cursor = handles[handle].cursor;
         return;
     }
@@ -574,7 +584,7 @@ function updateCursor(mouseX, mouseY) {
 function getHandleAtPoint(x, y, shape) {
     if (!shape) return null;
     const bounds = getShapeBounds(shape);
-    const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
+    const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, shape.rotation || 0);
     for (const [type, handle] of Object.entries(handles)) {
         if (Math.abs(x - handle.x) <= RESIZE_HANDLE_SIZE / 2 + 2 &&
             Math.abs(y - handle.y) <= RESIZE_HANDLE_SIZE / 2 + 2) {
@@ -1062,7 +1072,11 @@ canvas.addEventListener('mousedown', (e) => {
     // 1. Resizing check (ALWAYS check handles of selected shape first)
     const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
     if (handle && currentTool !== 'eraser' && currentTool !== 'crop') {
-        isResizing = true;
+        if (handle === 'rotate') {
+            isRotating = true;
+        } else {
+            isResizing = true;
+        }
         isDrawing = true;
         activeHandle = handle;
         dragStartX = mouseX;
@@ -1185,9 +1199,28 @@ canvas.addEventListener('mousemove', (e) => {
 
     if (!isDrawing) return;
 
+    if (isRotating && selectedShape) {
+        const center = getShapeCenter(selectedShape);
+        const angle = Math.atan2(currentY - center.y, currentX - center.x);
+        // Offset by Math.PI/2 because the handle is at the top (-90 degrees)
+        selectedShape.rotation = angle + Math.PI / 2;
+        redraw();
+        return;
+    }
+
     if (isResizing && selectedShape && currentTool !== 'crop' && currentTool !== 'eraser') {
-        const dx = currentX - dragStartX;
-        const dy = currentY - dragStartY;
+        let dx = currentX - dragStartX;
+        let dy = currentY - dragStartY;
+
+        if (selectedShape.rotation) {
+            const cos = Math.cos(-selectedShape.rotation);
+            const sin = Math.sin(-selectedShape.rotation);
+            const rDx = dx * cos - dy * sin;
+            const rDy = dx * sin + dy * cos;
+            dx = rDx;
+            dy = rDy;
+        }
+
         resizeShape(selectedShape, activeHandle, dx, dy, currentX, currentY);
         dragStartX = currentX;
         dragStartY = currentY;
@@ -1345,9 +1378,10 @@ canvas.addEventListener('mouseup', (e) => {
     if (!isDrawing) return;
     const { x: endX, y: endY } = getMousePos(e);
 
-    if (isResizing) {
+    if (isResizing || isRotating) {
         isDrawing = false;
         isResizing = false;
+        isRotating = false;
         activeHandle = null;
         saveState();
         redraw();
