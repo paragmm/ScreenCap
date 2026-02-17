@@ -18,10 +18,12 @@ A full-featured **Ribbon Interface** with glassmorphism aesthetics and intuitive
 - **Home Tab**: Access all primary drawing and formatting tools in one place.
 - **Undo & Redo**: Fully non-destructive workflow with deep history tracking.
 - **Select Tool**: Manipulate, resize, and move objects on the canvas with intuitive handles.
+  - **Shape Rotation**: Every shape features a rotation handle for precise angular adjustments.
+  - **Anchor-Point Resizing**: Advanced logic ensures that when resizing a rotated shape, the opposite side remains pinned to its world-space position for maximum precision.
 - **Pen & Eraser**: Fluid freehand drawing and precision element removal.
 - **Shapes**:
   - **Line & Arrow**: Perfect for highlighting directions or connections.
-  - **Rectangle & Circle/Oval**: Clean geometric annotations with advanced styling.
+  - **Rectangle & Circle/Oval**: Clean geometric annotations with advanced styling. Supports rotation and individual corner formatting.
 - **Rich Text Tool**: 
   - Dynamic in-place editing.
   - Variety of fonts (Inter, Arial, Georgia, Monospace).

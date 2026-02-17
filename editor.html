@@ -180,7 +180,7 @@
             <!-- Size Group -->
             <div class="ribbon-group">
                 <div class="ribbon-group-content slider-with-val">
-                    <span id="line-thickness-val" style="font-size: 10px; font-weight: 600; color: #6366f1;">3px</span>
+                    <span id="thickness-val" style="font-size: 10px; font-weight: 600; color: #6366f1;">3px</span>
                     <input type="range" id="line-thickness" min="1" max="20" value="3" title="Line Thickness"
                         class="mini-slider">
                 </div>
@@ -423,8 +423,8 @@
                             </div>
                             <div class="tool-desc">
                                 <strong>Select:</strong> The default tool. Click any shape to select it. Drag to
-                                move,
-                                or use the corner handles to resize. Drag over text to edit it.
+                                move, or use the corner handles to resize. Use the <strong>circular handle</strong>
+                                above the shape to <strong>rotate</strong> it. Drag over text to edit it.
                             </div>
                         </div>
                         <div class="tool-manual-item">
@@ -632,6 +632,9 @@
                     <p><strong>Styling:</strong> Use the top configuration bar to change stroke thickness, opacity,
                         and
                         colors. For Rectangles, you can even specify <strong>individual corner radii</strong>.</p>
+                    <p><strong>Anchor-Point Precision:</strong> When resizing rotated shapes, the opposite side is
+                        automatically pinned as an anchor, ensuring perfectly stable transformations without "jumping"
+                        or drift.</p>
                     <p><strong>Fills:</strong> Toggle the fill checkbox to add solid or semi-transparent backgrounds
                         to
                         your shapes.</p>

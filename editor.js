@@ -526,19 +526,39 @@ function drawSelectionHighlight(shape) {
 function updateCursor(mouseX, mouseY) {
     if (mouseX === undefined || mouseY === undefined) {
         canvas.style.cursor = '';
-        canvas.classList.remove('crop-cursor', 'eraser-cursor');
+        canvas.classList.remove('crop-cursor', 'eraser-cursor', 'rotate-cursor');
         return;
     }
 
     // Default: no custom classes
-    canvas.classList.remove('crop-cursor', 'eraser-cursor');
+    canvas.classList.remove('crop-cursor', 'eraser-cursor', 'rotate-cursor');
+
+    if (isRotating) {
+        canvas.classList.add('rotate-cursor');
+        canvas.style.cursor = '';
+        return;
+    }
+
+    if (isResizing && activeHandle && selectedShape) {
+        const bounds = getShapeBounds(selectedShape);
+        const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, selectedShape.rotation || 0);
+        if (handles[activeHandle]) {
+            canvas.style.cursor = handles[activeHandle].cursor;
+            return;
+        }
+    }
 
     // Check for handles first (unified behavior)
     const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
     if (handle && currentTool !== 'eraser' && currentTool !== 'crop') {
-        const bounds = getShapeBounds(selectedShape);
-        const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, selectedShape.rotation || 0);
-        canvas.style.cursor = handles[handle].cursor;
+        if (handle === 'rotate') {
+            canvas.classList.add('rotate-cursor');
+            canvas.style.cursor = '';
+        } else {
+            const bounds = getShapeBounds(selectedShape);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, selectedShape.rotation || 0);
+            canvas.style.cursor = handles[handle].cursor;
+        }
         return;
     }
 
