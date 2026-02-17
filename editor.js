@@ -156,29 +156,60 @@ function saveState() {
 function undo() {
     if (historyIndex > 0) {
         historyIndex--;
-        applyState(history[historyIndex]);
+        const state = history[historyIndex];
+        if (state) {
+            applyState(state);
+        } else {
+            console.error('Undo: History state not found at index', historyIndex);
+            // Try to recover
+            if (historyIndex < history.length - 1) historyIndex++;
+        }
     }
 }
 
 function redo() {
     if (historyIndex < history.length - 1) {
         historyIndex++;
-        applyState(history[historyIndex]);
+        const state = history[historyIndex];
+        if (state) {
+            applyState(state);
+        } else {
+            console.error('Redo: History state not found at index', historyIndex);
+            if (historyIndex > 0) historyIndex--;
+        }
     }
 }
 
 function applyState(state) {
-    shapes = JSON.parse(JSON.stringify(state.shapes));
+    if (!state) return;
+
+    // Validate state data
+    shapes = state.shapes ? JSON.parse(JSON.stringify(state.shapes)) : [];
     cropData = state.cropData ? JSON.parse(JSON.stringify(state.cropData)) : null;
-    canvas.width = state.width;
-    canvas.height = state.height;
+
+    // Ensure dimensions are valid positive numbers
+    if (Number.isFinite(state.width) && state.width > 0) {
+        canvas.width = state.width;
+    }
+    if (Number.isFinite(state.height) && state.height > 0) {
+        canvas.height = state.height;
+    }
+
     selectedShape = null;
     cropSelection = null;
+
     if (currentTool === 'crop') {
-        document.getElementById('confirm-crop-btn').style.display = 'none';
+        const confirmBtn = document.getElementById('confirm-crop-btn');
+        if (confirmBtn) confirmBtn.style.display = 'none';
+
+        // If restoring state while crop tool is active, we might need to reset tool state
+        // or just ensure crop overlay is drawn if it was in the state (but cropSelection isn't in state)
+        // cropSelection is ephemeral, so we clear it.
     } else {
-        document.getElementById('crop-actions').style.display = 'none';
+        const cropActions = document.getElementById('crop-actions');
+        if (cropActions) cropActions.style.display = 'none';
     }
+
     redraw();
     updateHistoryButtons();
     updateLayersList();
@@ -199,13 +230,18 @@ function updateHistoryButtons() {
 }
 
 function redraw() {
+    // Ensure valid context and dimensions
+    if (!ctx || canvas.width === 0 || canvas.height === 0) return;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw background image
-    if (cropData) {
-        ctx.drawImage(img, cropData.x, cropData.y, cropData.w, cropData.h, 0, 0, cropData.w, cropData.h);
-    } else {
-        ctx.drawImage(img, 0, 0);
+    if (img && img.complete && img.naturalWidth > 0) {
+        if (cropData && cropData.w > 0 && cropData.h > 0) {
+            ctx.drawImage(img, cropData.x, cropData.y, cropData.w, cropData.h, 0, 0, cropData.w, cropData.h);
+        } else {
+            ctx.drawImage(img, 0, 0);
+        }
     }
 
     // Draw all shapes
