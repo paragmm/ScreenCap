@@ -30,3 +30,23 @@ document.getElementById('captureSelective').addEventListener('click', async () =
     chrome.tabs.sendMessage(tab.id, { action: 'startSelectiveCapture' });
     window.close();
 });
+
+document.getElementById('openSnapshots').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('editor.html?tab=snapshots') });
+    window.close();
+});
+
+// Load latest snapshot for preview
+chrome.storage.local.get(['snapshots'], (result) => {
+    if (result.snapshots && result.snapshots.length > 0) {
+        const latest = result.snapshots[0];
+        const thumb = document.getElementById('latestSnapshotThumb');
+        const btn = document.getElementById('openSnapshots');
+        if (thumb && btn) {
+            thumb.src = latest.thumbnail;
+            btn.classList.add('has-data');
+        }
+    }
+});
+
+

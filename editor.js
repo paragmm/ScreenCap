@@ -2193,3 +2193,13 @@ if (clearSnapshotsBtn) {
 
 // Initialize Snapshots
 initSnapshots();
+
+// Check for URL parameters to switch tabs
+const urlParams = new URLSearchParams(window.location.search);
+const targetTab = urlParams.get('tab');
+if (targetTab) {
+    const tabElement = document.querySelector(`.ribbon-tab[data-tab="${targetTab}"]`);
+    if (tabElement) {
+        setTimeout(() => tabElement.click(), 100);
+    }
+}
