@@ -16,6 +16,7 @@ let currentStrokeOpacity = 1.0;
 let currentFillColor = '#6366f1';
 let currentFillOpacity = 1.0;
 let isFillEnabled = false;
+let isStrokeEnabled = true;
 let currentThickness = 3;
 let shapes = [];
 let selectedShape = null;
@@ -70,15 +71,26 @@ const ribbonTabs = document.querySelectorAll('.ribbon-tab');
 const ribbonContents = document.querySelectorAll('.ribbon-content');
 
 // Tab Switching
+// Tab Switching
 ribbonTabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const targetTab = tab.dataset.tab;
 
-        ribbonTabs.forEach(t => t.classList.remove('active'));
-        ribbonContents.forEach(c => c.classList.remove('active'));
+        // Deactivate all tabs and contents
+        document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ribbon-content').forEach(c => c.classList.remove('active'));
 
+        // Activate clicked tab
         tab.classList.add('active');
         document.getElementById(`tab-${targetTab}`).classList.add('active');
+    });
+});
+
+// Horizontal Scroll for Ribbon
+document.querySelectorAll('.ribbon-content').forEach(content => {
+    content.addEventListener('wheel', (evt) => {
+        evt.preventDefault();
+        content.scrollLeft += evt.deltaY;
     });
 });
 
@@ -219,42 +231,41 @@ function updateUIForSelection(shape) {
         updateThicknessInputFromShape(shape);
         updateFontInputsFromShape(shape);
         updateRadiusInputsFromShape(shape);
+        updatePolygonSidesInputFromShape(shape);
 
-        // Switch to Format tab automatically when something is selected
-        document.querySelector('.ribbon-tab[data-tab="format"]').click();
+        // Update group visibilities (don't force tab switch anymore)
+        const radiusGroup = document.getElementById('format-radius-group');
+        const polygonGroup = document.getElementById('format-polygon-group');
+        const textGroup = document.getElementById('format-text-group');
 
-        // Update group visibilities inside Format tab
-        document.getElementById('format-radius-group').style.display = (shape.type === 'rect') ? 'flex' : 'none';
+        if (radiusGroup) radiusGroup.style.display = (shape.type === 'rect') ? 'flex' : 'none';
+        if (polygonGroup) polygonGroup.style.display = (shape.type === 'polygon') ? 'flex' : 'none';
+        if (textGroup) textGroup.style.display = (shape.type === 'text' || shape.type === 'textarea') ? 'flex' : 'none';
 
-        if (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval' || shape.type === 'polygon') {
-            document.getElementById('format-style-group').style.display = 'flex';
-        }
-
-        document.getElementById('format-polygon-group').style.display = (shape.type === 'polygon') ? 'flex' : 'none';
-
-        if (shape.type === 'text' || shape.type === 'textarea') {
-            document.getElementById('format-pen-group').style.display = 'none';
-            document.getElementById('format-text-group').style.display = 'flex';
-        } else {
-            document.getElementById('format-pen-group').style.display = 'flex';
-            document.getElementById('format-text-group').style.display = 'none';
+        // Update Fill visibility on Home tab
+        const fillGroup = document.getElementById('fill-control-group');
+        if (fillGroup) {
+            const supportsFill = ['rect', 'circle', 'oval', 'polygon'].includes(shape.type);
+            fillGroup.style.display = supportsFill ? 'flex' : 'none';
         }
     } else {
-        // Fallback to tool defaults
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
         updateRadiusInputsFromShape(null);
         updatePolygonSidesInputFromShape(null);
 
-        document.getElementById('format-radius-group').style.display = (currentTool === 'rect') ? 'flex' : 'none';
-        document.getElementById('format-polygon-group').style.display = (currentTool === 'polygon') ? 'flex' : 'none';
+        const radiusGroup = document.getElementById('format-radius-group');
+        const polygonGroup = document.getElementById('format-polygon-group');
+        const textGroup = document.getElementById('format-text-group');
 
-        if (currentTool === 'text' || currentTool === 'textarea') {
-            document.getElementById('format-pen-group').style.display = 'none';
-            document.getElementById('format-text-group').style.display = 'flex';
-        } else {
-            document.getElementById('format-pen-group').style.display = 'flex';
-            document.getElementById('format-text-group').style.display = 'none';
+        if (radiusGroup) radiusGroup.style.display = (currentTool === 'rect') ? 'flex' : 'none';
+        if (polygonGroup) polygonGroup.style.display = (currentTool === 'polygon') ? 'flex' : 'none';
+        if (textGroup) textGroup.style.display = (currentTool === 'text' || currentTool === 'textarea') ? 'flex' : 'none';
+
+        const fillGroup = document.getElementById('fill-control-group');
+        if (fillGroup) {
+            const supportsFill = ['rect', 'circle', 'oval', 'polygon'].includes(currentTool);
+            fillGroup.style.display = supportsFill ? 'flex' : 'none';
         }
     }
 }
@@ -467,23 +478,27 @@ function updateCursor(mouseX, mouseY) {
     // Default: no custom classes
     canvas.classList.remove('crop-cursor', 'eraser-cursor');
 
-    if (currentTool === 'select' || currentTool === 'eraser') {
-        const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
-        if (currentTool === 'select' && handle) {
-            const bounds = getShapeBounds(selectedShape);
-            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
-            canvas.style.cursor = handles[handle].cursor;
-            return;
-        }
+    // Check for handles first (unified behavior)
+    const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
+    if (handle && currentTool !== 'eraser' && currentTool !== 'crop') {
+        const bounds = getShapeBounds(selectedShape);
+        const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE);
+        canvas.style.cursor = handles[handle].cursor;
+        return;
+    }
 
+    if (currentTool === 'eraser') {
         const isOverShape = shapes.some(s => isPointInShape(mouseX, mouseY, s));
         if (isOverShape) {
-            if (currentTool === 'eraser') {
-                canvas.classList.add('eraser-cursor');
-                canvas.style.cursor = '';
-            } else {
-                canvas.style.cursor = 'grab';
-            }
+            canvas.classList.add('eraser-cursor');
+            canvas.style.cursor = '';
+        } else {
+            canvas.style.cursor = '';
+        }
+    } else if (currentTool === 'select') {
+        const isOverShape = shapes.some(s => isPointInShape(mouseX, mouseY, s));
+        if (isOverShape) {
+            canvas.style.cursor = 'grab';
         } else {
             canvas.style.cursor = '';
         }
@@ -640,6 +655,13 @@ function updateFontInputsFromShape(shape) {
             document.getElementById('fill-opacity').value = Math.round(fOpacity * 100);
             document.getElementById('fill-opacity-val').innerText = `${Math.round(fOpacity * 100)}%`;
         }
+
+        // Sync stroke checkbox
+        if (shape.color && shape.color !== '#ffffff00' && shape.color !== 'transparent') {
+            document.getElementById('stroke-enabled').checked = true;
+        } else {
+            document.getElementById('stroke-enabled').checked = false;
+        }
     } else {
         document.getElementById('color-picker').value = currentColor;
         document.getElementById('stroke-opacity').value = Math.round(currentStrokeOpacity * 100);
@@ -649,6 +671,8 @@ function updateFontInputsFromShape(shape) {
         document.getElementById('fill-color-picker').value = currentFillColor;
         document.getElementById('fill-opacity').value = Math.round(currentFillOpacity * 100);
         document.getElementById('fill-opacity-val').innerText = `${Math.round(currentFillOpacity * 100)}%`;
+
+        document.getElementById('stroke-enabled').checked = isStrokeEnabled;
     }
 
     if (shape && (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval' || shape.type === 'polygon')) {
@@ -835,6 +859,15 @@ document.getElementById('fill-enabled').addEventListener('change', (e) => {
     }
 });
 
+document.getElementById('stroke-enabled').addEventListener('change', (e) => {
+    isStrokeEnabled = e.target.checked;
+    if (selectedShape) {
+        selectedShape.color = isStrokeEnabled ? currentColor : '#ffffff00';
+        redraw();
+        updateLayersList();
+    }
+});
+
 document.getElementById('font-family').addEventListener('change', (e) => {
     const val = e.target.value;
     currentFontFamily = val;
@@ -977,64 +1010,52 @@ canvas.addEventListener('mousedown', (e) => {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    if (currentTool === 'select' || currentTool === 'eraser') {
-        const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
-        if (currentTool === 'select' && handle) {
-            isResizing = true;
-            isDrawing = true; // Added this to trigger mousemove logic
-            activeHandle = handle;
-            dragStartX = mouseX;
-            dragStartY = mouseY;
-            return;
-        }
+    // 1. Resizing check (ALWAYS check handles of selected shape first)
+    const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
+    if (handle && currentTool !== 'eraser' && currentTool !== 'crop') {
+        isResizing = true;
+        isDrawing = true;
+        activeHandle = handle;
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        return;
+    }
 
+    // 2. Selection/Movement (Select Tool) or Eraser
+    if (currentTool === 'select' || currentTool === 'eraser') {
         const foundIndex = shapes.slice().reverse().findIndex(s => isPointInShape(mouseX, mouseY, s));
         if (foundIndex !== -1) {
             const actualIndex = shapes.length - 1 - foundIndex;
-            if (currentTool === 'select') {
-                selectedShape = shapes[actualIndex];
-                isDrawing = true;
-                dragStartX = mouseX;
-                dragStartY = mouseY;
-            } else {
+            const clickedShape = shapes[actualIndex];
+
+            if (currentTool === 'eraser') {
                 shapes.splice(actualIndex, 1);
                 selectedShape = null;
+                updateUIForSelection(null);
+                redraw();
+                saveState();
+                return;
             }
+
+            // Select Tool logic
+            selectedShape = clickedShape;
+            isDrawing = true;
+            dragStartX = mouseX;
+            dragStartY = mouseY;
+            updateUIForSelection(selectedShape);
+            redraw();
+            return;
         } else {
             selectedShape = null;
-        }
-
-        updateUIForSelection(selectedShape);
-        redraw();
-        updateCursor(mouseX, mouseY);
-        return;
-    }
-
-    const existingInput = document.querySelector('.text-input');
-    if (existingInput) {
-        existingInput.blur();
-        return;
-    }
-
-
-
-    if (currentTool === 'text' || currentTool === 'textarea') {
-        const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
-        if (foundIndex !== -1) {
-            const actualIndex = shapes.length - 1 - foundIndex;
-            initiateTextEdit(shapes[actualIndex]);
+            updateUIForSelection(null);
+            redraw();
             return;
         }
-
-        if (currentTool === 'text') {
-            initiateTextEdit(null, mouseX, mouseY);
-            return;
-        }
-
-        // For textarea tool, we don't return here; we fall through to start drawing the area
     }
 
+    // 3. Crop Logic
     if (currentTool === 'crop') {
+        // ... (keep crop handles logic)
         if (cropSelection) {
             const handles = getCropHandles(cropSelection, RESIZE_HANDLE_SIZE);
             for (const [type, h] of Object.entries(handles)) {
@@ -1045,7 +1066,6 @@ canvas.addEventListener('mousedown', (e) => {
                     activeHandle = type;
                     dragStartX = mouseX;
                     dragStartY = mouseY;
-                    document.getElementById('confirm-crop-btn').style.display = 'none';
                     return;
                 }
             }
@@ -1055,30 +1075,59 @@ canvas.addEventListener('mousedown', (e) => {
         startX = mouseX;
         startY = mouseY;
         cropSelection = { x: mouseX, y: mouseY, w: 0, h: 0 };
-        document.getElementById('confirm-crop-btn').style.display = 'none';
         redraw();
         return;
     }
+
+    // 4. Drawing Tools (Pen, Line, Shape, Text)
+    // If you click while one of these is active, we start DRAWING, 
+    // regardless of whether there's a shape underneath (unless we hit a handle above).
 
     isDrawing = true;
     startX = mouseX;
     startY = mouseY;
 
+    // If text tool, check if user clicked on a text/textarea shape specifically to edit it
+    if (currentTool === 'text' || currentTool === 'textarea') {
+        const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
+        if (foundIndex !== -1) {
+            initiateTextEdit(shapes[shapes.length - 1 - foundIndex]);
+            isDrawing = false;
+            return;
+        }
+
+        if (currentTool === 'text') {
+            initiateTextEdit(null, mouseX, mouseY);
+            isDrawing = false;
+            return;
+        }
+        // If textarea tool, it will fall through to drawing a box in mouseup
+    }
+
     if (currentTool === 'pen') {
+        const strokeEnabled = document.getElementById('stroke-enabled').checked;
         shapes.push({
             type: 'pen',
             points: [{ x: mouseX, y: mouseY }],
-            color: currentColor,
+            color: strokeEnabled ? currentColor : '#ffffff00',
             thickness: currentThickness,
             strokeOpacity: currentStrokeOpacity,
             name: getUniqueName('pen')
         });
-    } else if (currentTool === 'eraser') {
-        // Eraser in shape-based system is complex if it's supposed to erase parts.
-        // For simplicity, let's just not support moving erased parts yet or treat eraser as a special shape.
-        // Actually, let's skip eraser for now or keep it as is (which won't work perfectly with redraw).
     } else {
-        // Temporary shape for visual feedback will be handled in mousemove
+        selectedShape = null; // Clear selection when starting a new shape
+    }
+});
+
+canvas.addEventListener('dblclick', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
+    if (foundIndex !== -1) {
+        const actualIndex = shapes.length - 1 - foundIndex;
+        initiateTextEdit(shapes[actualIndex]);
     }
 });
 
@@ -1091,17 +1140,17 @@ canvas.addEventListener('mousemove', (e) => {
 
     if (!isDrawing) return;
 
-    if (currentTool === 'select' || currentTool === 'eraser') {
-        if (currentTool === 'select' && isResizing && selectedShape) {
-            const dx = currentX - dragStartX;
-            const dy = currentY - dragStartY;
-            resizeShape(selectedShape, activeHandle, dx, dy, currentX, currentY);
-            dragStartX = currentX;
-            dragStartY = currentY;
-            redraw();
-            return;
-        }
+    if (isResizing && selectedShape && currentTool !== 'crop' && currentTool !== 'eraser') {
+        const dx = currentX - dragStartX;
+        const dy = currentY - dragStartY;
+        resizeShape(selectedShape, activeHandle, dx, dy, currentX, currentY);
+        dragStartX = currentX;
+        dragStartY = currentY;
+        redraw();
+        return;
+    }
 
+    if (currentTool === 'select' || currentTool === 'eraser') {
         if (currentTool === 'select' && selectedShape && isDrawing && !isResizing) {
             const dx = currentX - dragStartX;
             const dy = currentY - dragStartY;
@@ -1146,9 +1195,10 @@ canvas.addEventListener('mousemove', (e) => {
 
 function createShape(type, x1, y1, x2, y2, isPreview = false) {
     const fillEnabled = document.getElementById('fill-enabled').checked;
+    const strokeEnabled = document.getElementById('stroke-enabled').checked;
     const shape = {
         type,
-        color: currentColor,
+        color: strokeEnabled ? currentColor : '#ffffff00',
         strokeOpacity: currentStrokeOpacity,
         fillColor: (fillEnabled && (type === 'rect' || type === 'circle' || type === 'polygon')) ? currentFillColor : '#ffffff00',
         fillOpacity: (type === 'rect' || type === 'circle' || type === 'polygon') ? currentFillOpacity : 1.0,
@@ -1253,6 +1303,15 @@ canvas.addEventListener('mouseup', (e) => {
     const currentX = e.clientX - rect.left;
     const currentY = e.clientY - rect.top;
 
+    if (isResizing) {
+        isDrawing = false;
+        isResizing = false;
+        activeHandle = null;
+        saveState();
+        redraw();
+        return;
+    }
+
     if (currentTool === 'crop') {
         isDrawing = false;
         isResizing = false;
@@ -1282,7 +1341,16 @@ canvas.addEventListener('mouseup', (e) => {
                 initiateTextEdit(newShape, newShape.x, newShape.y, true);
             }
         } else {
-            shapes.push(newShape);
+            // Only add if it has some size
+            const size = (newShape.type === 'circle') ? newShape.r : (newShape.type === 'line' || newShape.type === 'arrow') ?
+                Math.sqrt(Math.pow(newShape.x2 - newShape.x1, 2) + Math.pow(newShape.y2 - newShape.y1, 2)) :
+                Math.max(newShape.w, newShape.h);
+
+            if (size > 5) {
+                shapes.push(newShape);
+                selectedShape = newShape;
+                updateUIForSelection(newShape);
+            }
         }
     }
 
@@ -1299,6 +1367,18 @@ canvas.addEventListener('mouseup', (e) => {
 
 canvas.addEventListener('mouseleave', () => {
     updateCursor();
+});
+
+canvas.addEventListener('dblclick', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
+    if (foundIndex !== -1) {
+        const actualIndex = shapes.length - 1 - foundIndex;
+        initiateTextEdit(shapes[actualIndex]);
+    }
 });
 
 // Actions
@@ -1403,6 +1483,27 @@ document.addEventListener('keydown', (e) => {
         const manualModal = document.getElementById('manual-modal');
         if (manualModal && manualModal.style.display === 'flex') {
             manualModal.style.display = 'none';
+        }
+    } else {
+        // Tool Hotkeys
+        const key = e.key.toLowerCase();
+        const toolMap = {
+            's': 'select',
+            'p': 'pen',
+            'e': 'eraser',
+            'r': 'rect',
+            'c': 'circle',
+            't': 'text',
+            'l': 'line',
+            'a': 'arrow',
+            'g': 'polygon',
+            'x': 'crop'
+        };
+
+        if (toolMap[key]) {
+            const btnId = `tool-${toolMap[key]}-ribbon`;
+            const btn = document.getElementById(btnId);
+            if (btn) btn.click();
         }
     }
 });
