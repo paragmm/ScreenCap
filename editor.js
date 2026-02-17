@@ -37,6 +37,15 @@ let userManuallyCollapsedSidebar = false;
 let cropSelection = null;
 let isCropping = false;
 let currentSides = 5;
+let currentZoom = 1;
+
+function getMousePos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+        y: (evt.clientY - rect.top) * (canvas.height / rect.height)
+    };
+}
 
 let typeCounters = {
     line: 0,
@@ -969,29 +978,35 @@ function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
     const input = document.createElement('div');
     input.className = 'text-input';
     input.contentEditable = true;
+    document.body.appendChild(input);
 
     const canvasRect = canvas.getBoundingClientRect();
-    input.style.left = `${canvasRect.left + shapeToEdit.x - (isTextArea ? 0 : 5)}px`;
-    input.style.top = `${canvasRect.top + shapeToEdit.y - (isTextArea ? 0 : 5)}px`;
+    // Calculate scale factors (this accounts for both 'zoom' property and natural scaling)
+    const scaleX = canvasRect.width / canvas.width;
+    const scaleY = canvasRect.height / canvas.height;
+
+    // Apply scaling to position
+    input.style.left = `${canvasRect.left + (shapeToEdit.x * scaleX) - (isTextArea ? 0 : 5)}px`;
+    input.style.top = `${canvasRect.top + (shapeToEdit.y * scaleY) - (isTextArea ? 0 : 5)}px`;
 
     const _isTextArea = isTextArea || shapeToEdit.type === 'textarea';
     if (_isTextArea && shapeToEdit.w) {
-        input.style.width = `${shapeToEdit.w}px`;
-        input.style.height = `${shapeToEdit.h}px`;
+        input.style.width = `${shapeToEdit.w * scaleX}px`;
+        input.style.height = `${shapeToEdit.h * scaleY}px`;
         input.style.border = '1px dotted #6366f1';
         input.style.overflow = 'auto';
     }
 
     input.style.color = shapeToEdit.color;
-    input.style.fontSize = `${shapeToEdit.fontSize || 20}px`;
+    // Apply scaling to font size
+    const visualFontSize = (shapeToEdit.fontSize || 20) * scaleX;
+    input.style.fontSize = `${visualFontSize}px`;
     input.style.fontFamily = shapeToEdit.fontFamily || 'Inter, sans-serif';
     input.style.fontWeight = shapeToEdit.bold ? 'bold' : 'normal';
     input.style.fontStyle = shapeToEdit.italic ? 'italic' : 'normal';
     input.style.textDecoration = shapeToEdit.underline ? 'underline' : 'none';
-    input.style.lineHeight = `${(shapeToEdit.fontSize || 20) * 1.2}px`;
+    input.style.lineHeight = `${visualFontSize * 1.2}px`;
     input.innerText = shapeToEdit.text;
-
-    document.body.appendChild(input);
 
     setTimeout(() => {
         input.focus();
@@ -1042,9 +1057,7 @@ function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
 
 // Drawing Logic
 canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const { x: mouseX, y: mouseY } = getMousePos(e);
 
     // 1. Resizing check (ALWAYS check handles of selected shape first)
     const handle = getHandleAtPoint(mouseX, mouseY, selectedShape);
@@ -1156,9 +1169,7 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('dblclick', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const { x: mouseX, y: mouseY } = getMousePos(e);
 
     const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
     if (foundIndex !== -1) {
@@ -1168,9 +1179,7 @@ canvas.addEventListener('dblclick', (e) => {
 });
 
 canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const { x: currentX, y: currentY } = getMousePos(e);
 
     updateCursor(currentX, currentY);
 
@@ -1334,10 +1343,7 @@ function moveShape(shape, dx, dy) {
 
 canvas.addEventListener('mouseup', (e) => {
     if (!isDrawing) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const currentX = e.clientX - rect.left;
-    const currentY = e.clientY - rect.top;
+    const { x: endX, y: endY } = getMousePos(e);
 
     if (isResizing) {
         isDrawing = false;
@@ -1371,7 +1377,7 @@ canvas.addEventListener('mouseup', (e) => {
     }
 
     if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon'].includes(currentTool)) {
-        const newShape = createShape(currentTool, startX, startY, currentX, currentY, false);
+        const newShape = createShape(currentTool, startX, startY, endX, endY, false);
         if (currentTool === 'textarea') {
             if (newShape.w > 10 && newShape.h > 10) {
                 initiateTextEdit(newShape, newShape.x, newShape.y, true);
@@ -1397,7 +1403,7 @@ canvas.addEventListener('mouseup', (e) => {
     isDrawing = false;
     isResizing = false;
     activeHandle = null;
-    updateCursor(currentX, currentY);
+    updateCursor(endX, endY);
     redraw();
 });
 
@@ -1406,9 +1412,7 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 canvas.addEventListener('dblclick', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const { x: mouseX, y: mouseY } = getMousePos(e);
 
     const foundIndex = shapes.slice().reverse().findIndex(s => (s.type === 'text' || s.type === 'textarea') && isPointInShape(mouseX, mouseY, s));
     if (foundIndex !== -1) {
@@ -1660,5 +1664,39 @@ if (toggleSidebarBtn && layersSidebar) {
     toggleSidebarBtn.addEventListener('click', () => {
         const isCollapsed = layersSidebar.classList.toggle('collapsed');
         userManuallyCollapsedSidebar = isCollapsed;
+    });
+}
+// Zoom Logic
+function setZoom(zoom) {
+    // Clamp zoom level
+    if (zoom < 0.1) zoom = 0.1;
+    if (zoom > 5) zoom = 5;
+
+    // Round to 1 decimal place to avoid floating point issues
+    currentZoom = Math.round(zoom * 10) / 10;
+
+    // Apply zoom using CSS 'zoom' property which handles flow layout better than transform
+    // and automatically updates getBoundingClientRect without manual math
+    canvas.style.zoom = `${currentZoom * 100}%`;
+
+    // Update label
+    const zoomLevelDisplay = document.getElementById('zoom-level');
+    if (zoomLevelDisplay) {
+        zoomLevelDisplay.innerText = `${Math.round(currentZoom * 100)}%`;
+    }
+}
+
+const btnZoomIn = document.getElementById('zoom-in-btn');
+const btnZoomOut = document.getElementById('zoom-out-btn');
+
+if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', () => {
+        setZoom(currentZoom + 0.1);
+    });
+}
+
+if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', () => {
+        setZoom(currentZoom - 0.1);
     });
 }
