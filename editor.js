@@ -1212,9 +1212,21 @@ canvas.addEventListener('mousemove', (e) => {
         let dx = currentX - dragStartX;
         let dy = currentY - dragStartY;
 
-        if (selectedShape.rotation) {
-            const cos = Math.cos(-selectedShape.rotation);
-            const sin = Math.sin(-selectedShape.rotation);
+        let rotation = selectedShape.rotation || 0;
+        let anchorPoint = null;
+        const opposites = {
+            nw: 'se', n: 's', ne: 'sw', e: 'w', se: 'nw', s: 'n', sw: 'ne', w: 'e'
+        };
+        const oppHandle = opposites[activeHandle];
+
+        if (rotation && oppHandle) {
+            // Get the world position of the point that should stay fixed (the opposite handle)
+            const bounds = getShapeBounds(selectedShape);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, rotation);
+            anchorPoint = { x: handles[oppHandle].x, y: handles[oppHandle].y };
+
+            const cos = Math.cos(-rotation);
+            const sin = Math.sin(-rotation);
             const rDx = dx * cos - dy * sin;
             const rDy = dx * sin + dy * cos;
             dx = rDx;
@@ -1222,6 +1234,33 @@ canvas.addEventListener('mousemove', (e) => {
         }
 
         resizeShape(selectedShape, activeHandle, dx, dy, currentX, currentY);
+
+        if (rotation && anchorPoint && oppHandle) {
+            // After resizing in local space, find where the anchor point moved to in world space
+            const bounds = getShapeBounds(selectedShape);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, rotation);
+            const newAnchorPoint = { x: handles[oppHandle].x, y: handles[oppHandle].y };
+
+            // Calculate the compensation needed to put the anchor back to its original world position
+            const shiftX = anchorPoint.x - newAnchorPoint.x;
+            const shiftY = anchorPoint.y - newAnchorPoint.y;
+
+            if (['line', 'arrow'].includes(selectedShape.type)) {
+                selectedShape.x1 += shiftX;
+                selectedShape.y1 += shiftY;
+                selectedShape.x2 += shiftX;
+                selectedShape.y2 += shiftY;
+            } else if (selectedShape.type === 'pen') {
+                selectedShape.points.forEach(p => {
+                    p.x += shiftX;
+                    p.y += shiftY;
+                });
+            } else {
+                selectedShape.x += shiftX;
+                selectedShape.y += shiftY;
+            }
+        }
+
         dragStartX = currentX;
         dragStartY = currentY;
         redraw();
