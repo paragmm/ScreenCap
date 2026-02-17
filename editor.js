@@ -1324,20 +1324,7 @@ canvas.addEventListener('mousemove', (e) => {
             const shiftX = anchorPoint.x - newAnchorPoint.x;
             const shiftY = anchorPoint.y - newAnchorPoint.y;
 
-            if (['line', 'arrow'].includes(selectedShape.type)) {
-                selectedShape.x1 += shiftX;
-                selectedShape.y1 += shiftY;
-                selectedShape.x2 += shiftX;
-                selectedShape.y2 += shiftY;
-            } else if (selectedShape.type === 'pen') {
-                selectedShape.points.forEach(p => {
-                    p.x += shiftX;
-                    p.y += shiftY;
-                });
-            } else {
-                selectedShape.x += shiftX;
-                selectedShape.y += shiftY;
-            }
+            moveShape(selectedShape, shiftX, shiftY);
         }
 
         dragStartX = currentX;
@@ -1812,7 +1799,20 @@ document.addEventListener('keydown', (e) => {
         const target = selectedShape || (selectedShapes.length === 1 ? selectedShapes[0] : null);
         if (target) {
             e.preventDefault();
-            resizeShape(target, 'se', 10, 10);
+            const dx = 10, dy = 10;
+            const rotation = target.rotation || 0;
+            const bounds = getShapeBounds(target);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, rotation);
+            const anchorPoint = { x: handles.nw.x, y: handles.nw.y };
+
+            resizeShape(target, 'se', dx, dy);
+
+            const newBounds = getShapeBounds(target);
+            const newHandles = getResizeHandles(newBounds, RESIZE_HANDLE_SIZE, rotation);
+            const newAnchorPoint = { x: newHandles.nw.x, y: newHandles.nw.y };
+
+            moveShape(target, anchorPoint.x - newAnchorPoint.x, anchorPoint.y - newAnchorPoint.y);
+
             redraw();
             saveState();
         }
@@ -1820,7 +1820,20 @@ document.addEventListener('keydown', (e) => {
         const target = selectedShape || (selectedShapes.length === 1 ? selectedShapes[0] : null);
         if (target) {
             e.preventDefault();
-            resizeShape(target, 'se', -10, -10);
+            const dx = -10, dy = -10;
+            const rotation = target.rotation || 0;
+            const bounds = getShapeBounds(target);
+            const handles = getResizeHandles(bounds, RESIZE_HANDLE_SIZE, rotation);
+            const anchorPoint = { x: handles.nw.x, y: handles.nw.y };
+
+            resizeShape(target, 'se', dx, dy);
+
+            const newBounds = getShapeBounds(target);
+            const newHandles = getResizeHandles(newBounds, RESIZE_HANDLE_SIZE, rotation);
+            const newAnchorPoint = { x: newHandles.nw.x, y: newHandles.nw.y };
+
+            moveShape(target, anchorPoint.x - newAnchorPoint.x, anchorPoint.y - newAnchorPoint.y);
+
             redraw();
             saveState();
         }
