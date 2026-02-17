@@ -54,6 +54,25 @@ export function drawShape(ctx, shape, hexToRGBA) {
             if (fillRGBA !== 'transparent') ctx.fill();
             ctx.stroke();
             break;
+        case 'polygon':
+            ctx.beginPath();
+            const sides = shape.sides || 5;
+            const centerX = shape.x + shape.w / 2;
+            const centerY = shape.y + shape.h / 2;
+            const radiusX = Math.abs(shape.w) / 2;
+            const radiusY = Math.abs(shape.h) / 2;
+
+            for (let i = 0; i < sides; i++) {
+                const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
+                const px = centerX + radiusX * Math.cos(angle);
+                const py = centerY + radiusY * Math.sin(angle);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            if (fillRGBA !== 'transparent') ctx.fill();
+            ctx.stroke();
+            break;
     }
 }
 

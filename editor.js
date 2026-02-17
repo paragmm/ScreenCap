@@ -35,6 +35,7 @@ let historyIndex = -1;
 let userManuallyCollapsedSidebar = false;
 let cropSelection = null;
 let isCropping = false;
+let currentSides = 5;
 
 let typeCounters = {
     line: 0,
@@ -44,7 +45,8 @@ let typeCounters = {
     arrow: 0,
     pen: 0,
     text: 0,
-    textarea: 0
+    textarea: 0,
+    polygon: 0
 };
 
 function getUniqueName(type) {
@@ -224,9 +226,11 @@ function updateUIForSelection(shape) {
         // Update group visibilities inside Format tab
         document.getElementById('format-radius-group').style.display = (shape.type === 'rect') ? 'flex' : 'none';
 
-        if (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval') {
+        if (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval' || shape.type === 'polygon') {
             document.getElementById('format-style-group').style.display = 'flex';
         }
+
+        document.getElementById('format-polygon-group').style.display = (shape.type === 'polygon') ? 'flex' : 'none';
 
         if (shape.type === 'text' || shape.type === 'textarea') {
             document.getElementById('format-pen-group').style.display = 'none';
@@ -240,8 +244,10 @@ function updateUIForSelection(shape) {
         updateThicknessInputFromShape(null);
         updateFontInputsFromShape(null);
         updateRadiusInputsFromShape(null);
+        updatePolygonSidesInputFromShape(null);
 
         document.getElementById('format-radius-group').style.display = (currentTool === 'rect') ? 'flex' : 'none';
+        document.getElementById('format-polygon-group').style.display = (currentTool === 'polygon') ? 'flex' : 'none';
 
         if (currentTool === 'text' || currentTool === 'textarea') {
             document.getElementById('format-pen-group').style.display = 'none';
@@ -377,6 +383,7 @@ function getLayerIcon(shape) {
         case 'pen': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>`;
         case 'text': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`;
         case 'textarea': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="13" y2="16"></line></svg>`;
+        case 'polygon': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><path d="M12 2L2 9l4 11h12l4-11z"></path></svg>`;
         default: return '';
     }
 }
@@ -439,6 +446,7 @@ function drawShape(shape) {
         case 'rect':
         case 'circle':
         case 'oval':
+        case 'polygon':
             drawShapeInternal(ctx, shape, hexToRGBA);
             break;
     }
@@ -578,6 +586,14 @@ function updateRadiusInputsFromShape(shape) {
     }
 }
 
+function updatePolygonSidesInputFromShape(shape) {
+    const sidesInput = document.getElementById('polygon-sides');
+    const sidesRange = document.getElementById('polygon-sides-range');
+    const val = (shape && shape.sides) ? shape.sides : currentSides;
+    sidesInput.value = val;
+    sidesRange.value = val;
+}
+
 function updateThicknessInputFromShape(shape) {
     const thicknessInput = document.getElementById('line-thickness');
     const val = (shape && shape.thickness) ? shape.thickness : currentThickness;
@@ -633,6 +649,14 @@ function updateFontInputsFromShape(shape) {
         document.getElementById('fill-color-picker').value = currentFillColor;
         document.getElementById('fill-opacity').value = Math.round(currentFillOpacity * 100);
         document.getElementById('fill-opacity-val').innerText = `${Math.round(currentFillOpacity * 100)}%`;
+    }
+
+    if (shape && (shape.type === 'rect' || shape.type === 'circle' || shape.type === 'oval' || shape.type === 'polygon')) {
+        document.getElementById('fill-control-group').style.display = 'flex';
+    } else if (!shape && (currentTool === 'rect' || currentTool === 'circle' || currentTool === 'oval' || currentTool === 'polygon')) {
+        document.getElementById('fill-control-group').style.display = 'flex';
+    } else {
+        document.getElementById('fill-control-group').style.display = 'none';
     }
 }
 
@@ -717,6 +741,25 @@ radiusSync.addEventListener('change', () => {
     }
 });
 
+const polygonSidesInput = document.getElementById('polygon-sides');
+const polygonSidesRange = document.getElementById('polygon-sides-range');
+
+if (polygonSidesInput && polygonSidesRange) {
+    [polygonSidesInput, polygonSidesRange].forEach(el => {
+        el.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value) || 3;
+            currentSides = val;
+            polygonSidesInput.value = val;
+            polygonSidesRange.value = val;
+
+            if (selectedShape && selectedShape.type === 'polygon') {
+                selectedShape.sides = val;
+                redraw();
+            }
+        });
+    });
+}
+
 document.getElementById('tool-clear-ribbon').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear all shapes?')) {
         shapes = [];
@@ -758,7 +801,7 @@ document.getElementById('fill-opacity').addEventListener('input', (e) => {
     const val = parseInt(e.target.value) / 100;
     currentFillOpacity = val;
     document.getElementById('fill-opacity-val').innerText = `${e.target.value}%`;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval' || selectedShape.type === 'polygon')) {
         selectedShape.fillOpacity = val;
         redraw();
         updateLayersList();
@@ -776,7 +819,7 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
 
 document.getElementById('fill-color-picker').addEventListener('input', (e) => {
     currentFillColor = e.target.value;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval') && document.getElementById('fill-enabled').checked) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval' || selectedShape.type === 'polygon') && document.getElementById('fill-enabled').checked) {
         selectedShape.fillColor = currentFillColor;
         redraw();
         updateLayersList();
@@ -785,7 +828,7 @@ document.getElementById('fill-color-picker').addEventListener('input', (e) => {
 
 document.getElementById('fill-enabled').addEventListener('change', (e) => {
     isFillEnabled = e.target.checked;
-    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval')) {
+    if (selectedShape && (selectedShape.type === 'rect' || selectedShape.type === 'circle' || selectedShape.type === 'oval' || selectedShape.type === 'polygon')) {
         selectedShape.fillColor = isFillEnabled ? currentFillColor : '#ffffff00';
         redraw();
         updateLayersList();
@@ -1093,7 +1136,7 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentTool === 'pen') {
         shapes[shapes.length - 1].points.push({ x: currentX, y: currentY });
         redraw();
-    } else if (['line', 'rect', 'circle', 'arrow', 'textarea'].includes(currentTool)) {
+    } else if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon'].includes(currentTool)) {
         redraw();
         // Draw the shape being created (not yet in shapes array) - passing true for isPreview
         const tempShape = createShape(currentTool, startX, startY, currentX, currentY, true);
@@ -1107,8 +1150,8 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
         type,
         color: currentColor,
         strokeOpacity: currentStrokeOpacity,
-        fillColor: (fillEnabled && (type === 'rect' || type === 'circle')) ? currentFillColor : '#ffffff00',
-        fillOpacity: (type === 'rect' || type === 'circle') ? currentFillOpacity : 1.0,
+        fillColor: (fillEnabled && (type === 'rect' || type === 'circle' || type === 'polygon')) ? currentFillColor : '#ffffff00',
+        fillOpacity: (type === 'rect' || type === 'circle' || type === 'polygon') ? currentFillOpacity : 1.0,
         thickness: currentThickness,
         name: isPreview ? '' : getUniqueName(type),
         isPreview: isPreview
@@ -1151,6 +1194,13 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
             shape.rx = Math.abs(x2 - x1) / 2;
             shape.ry = Math.abs(y2 - y1) / 2;
             break;
+        case 'polygon':
+            shape.x = Math.min(x1, x2);
+            shape.y = Math.min(y1, y2);
+            shape.w = Math.abs(x2 - x1);
+            shape.h = Math.abs(y2 - y1);
+            shape.sides = currentSides;
+            break;
     }
     return shape;
 }
@@ -1159,6 +1209,7 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
     switch (shape.type) {
         case 'rect':
         case 'textarea':
+        case 'polygon':
             resizeRect(shape, handleType, dx, dy);
             break;
         case 'oval':
@@ -1224,7 +1275,7 @@ canvas.addEventListener('mouseup', (e) => {
         return;
     }
 
-    if (['line', 'rect', 'circle', 'arrow', 'textarea'].includes(currentTool)) {
+    if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon'].includes(currentTool)) {
         const newShape = createShape(currentTool, startX, startY, currentX, currentY, false);
         if (currentTool === 'textarea') {
             if (newShape.w > 10 && newShape.h > 10) {
@@ -1324,9 +1375,11 @@ document.addEventListener('keydown', (e) => {
     } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
         e.preventDefault();
         redo();
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
         copyShape();
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault();
         pasteShape();
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedShape) {
