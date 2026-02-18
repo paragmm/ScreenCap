@@ -62,7 +62,7 @@ export function drawSelectionHighlight(ctx, bounds, handleSize = 8, rotation = 0
     ctx.strokeStyle = '#6366f1';
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
-    ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.w + 4, bounds.h + 4);
+    ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
     ctx.setLineDash([]);
 
     // Draw rotation handle line
@@ -75,14 +75,14 @@ export function drawSelectionHighlight(ctx, bounds, handleSize = 8, rotation = 0
     // Draw handles
     ctx.fillStyle = '#6366f1';
     const handles = [
-        { x: bounds.x - 2, y: bounds.y - 2 },
-        { x: bounds.x + bounds.w / 2, y: bounds.y - 2 },
-        { x: bounds.x + bounds.w + 2, y: bounds.y - 2 },
-        { x: bounds.x - 2, y: bounds.y + bounds.h / 2 },
-        { x: bounds.x + bounds.w + 2, y: bounds.y + bounds.h / 2 },
-        { x: bounds.x - 2, y: bounds.y + bounds.h + 2 },
-        { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h + 2 },
-        { x: bounds.x + bounds.w + 2, y: bounds.y + bounds.h + 2 },
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.w / 2, y: bounds.y },
+        { x: bounds.x + bounds.w, y: bounds.y },
+        { x: bounds.x, y: bounds.y + bounds.h / 2 },
+        { x: bounds.x + bounds.w, y: bounds.y + bounds.h / 2 },
+        { x: bounds.x, y: bounds.y + bounds.h },
+        { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h },
+        { x: bounds.x + bounds.w, y: bounds.y + bounds.h },
         // Rotation handle
         { x: bounds.x + bounds.w / 2, y: bounds.y - rotationHandleOffset }
     ];

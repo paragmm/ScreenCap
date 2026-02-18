@@ -1140,9 +1140,9 @@ input[type="color"]::-webkit-color-swatch {
 /* Text Input */
 .text-input {
   position: absolute;
-  padding: 8px;
+  padding: 0;
   background: transparent;
-  border: 2px dotted var(--primary);
+  border: 1px dotted var(--primary);
   color: var(--primary);
   outline: none;
   min-width: 50px;

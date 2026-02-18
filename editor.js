@@ -1025,6 +1025,27 @@ document.getElementById('font-size').addEventListener('input', (e) => {
     }
 });
 
+function measureTextShape(shape) {
+    ctx.save();
+    ctx.font = `${shape.italic ? 'italic ' : ''}${shape.bold ? 'bold ' : ''}${shape.fontSize || 20}px ${shape.fontFamily || 'Inter, sans-serif'}`;
+    const lines = (shape.text || '').split('\n');
+    const lineHeight = (shape.fontSize || 20) * 1.2;
+    let maxWidth = 0;
+    lines.forEach(line => {
+        const metrics = ctx.measureText(line);
+        // Use the advance width but also check actualBoundingBoxRight for a potentially tighter fit
+        // metrics.width is usually the advance, while actualBoundingBoxRight is the last ink pixel.
+        const measuredWidth = (metrics.actualBoundingBoxRight !== undefined && metrics.actualBoundingBoxRight > 0)
+            ? metrics.actualBoundingBoxRight
+            : metrics.width;
+        if (measuredWidth > maxWidth) maxWidth = measuredWidth;
+    });
+    // Add a tiny buffer (1px) to avoid rounding issues cutting off anti-aliased edges
+    shape.w = Math.ceil(maxWidth) + 1;
+    shape.h = lines.length * lineHeight;
+    ctx.restore();
+}
+
 function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
     const isEditing = !!shapeOrNull;
     const shapeToEdit = isEditing ? shapeOrNull : {
@@ -1071,8 +1092,9 @@ function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
     const scaleY = canvasRect.height / canvas.height;
 
     // Apply scaling to position
-    input.style.left = `${canvasRect.left + (shapeToEdit.x * scaleX) - (isTextArea ? 0 : 5)}px`;
-    input.style.top = `${canvasRect.top + (shapeToEdit.y * scaleY) - (isTextArea ? 0 : 5)}px`;
+    // Removed the -5px offset to match the rendered text exactly (assuming 0 padding in CSS)
+    input.style.left = `${canvasRect.left + (shapeToEdit.x * scaleX)}px`;
+    input.style.top = `${canvasRect.top + (shapeToEdit.y * scaleY)}px`;
 
     const _isTextArea = isTextArea || shapeToEdit.type === 'textarea';
     if (_isTextArea && shapeToEdit.w) {
@@ -1080,6 +1102,11 @@ function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
         input.style.height = `${shapeToEdit.h * scaleY}px`;
         input.style.border = '1px dotted #6366f1';
         input.style.overflow = 'auto';
+    } else if (!_isTextArea) {
+        // For single-line text, hide the border unless focused
+        input.style.border = 'none';
+        input.style.outline = 'none';
+        input.style.padding = '0';
     }
 
     input.style.color = shapeToEdit.color;
@@ -1117,6 +1144,11 @@ function initiateTextEdit(shapeOrNull, x, y, isTextArea = false) {
             shapeToEdit.italic = currentItalic;
             shapeToEdit.underline = currentUnderline;
             shapeToEdit.strokeOpacity = currentStrokeOpacity;
+
+            if (shapeToEdit.type === 'text') {
+                measureTextShape(shapeToEdit);
+            }
+
             shapes.push(shapeToEdit);
             selectedShape = shapeToEdit;
         }
@@ -1470,6 +1502,7 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
             break;
         case 'text':
             resizeText(shape, handleType, dx, dy, updateFontInputsFromShape);
+            measureTextShape(shape);
             break;
         case 'pen':
             resizePen(shape, handleType, dx, dy);
@@ -1548,6 +1581,7 @@ function scaleShape(shape, sx, sy, anchorX, anchorY) {
             shape.ry *= Math.abs(sy);
         } else if (shape.type === 'text' || shape.type === 'textarea') {
             shape.fontSize *= Math.abs((sx + sy) / 2);
+            if (shape.type === 'text') measureTextShape(shape);
         }
     }
 }
