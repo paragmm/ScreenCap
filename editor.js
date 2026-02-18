@@ -2089,6 +2089,7 @@ function takeSnapshot() {
     const snapshot = {
         id: activeSnapshotId || Date.now(),
         thumbnail: thumbnail,
+        fullRenderedImage: canvas.toDataURL('image/png'), // New for HQ comparison
         backgroundImage: img.src,
         shapes: JSON.parse(JSON.stringify(shapes)),
         cropData: cropData ? JSON.parse(JSON.stringify(cropData)) : null,
@@ -2170,6 +2171,8 @@ function deleteSnapshot(id, event) {
     });
 }
 
+let selectedSnapshotIds = [];
+
 function updateSnapshotsUI() {
     const list = document.getElementById('snapshots-list');
     if (!list) return;
@@ -2184,7 +2187,9 @@ function updateSnapshotsUI() {
         const item = document.createElement('div');
         item.className = 'snapshot-item';
         if (s.id === activeSnapshotId) item.classList.add('active');
-        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore state';
+        if (selectedSnapshotIds.includes(s.id)) item.classList.add('selected');
+
+        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore (or Ctrl+Click to multi-select)';
         item.innerHTML = `
             <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
             <div class="snapshot-info">
@@ -2193,7 +2198,20 @@ function updateSnapshotsUI() {
             </div>
         `;
 
-        item.addEventListener('click', () => restoreSnapshot(s.id));
+        item.addEventListener('click', (e) => {
+            if (e.ctrlKey) {
+                if (selectedSnapshotIds.includes(s.id)) {
+                    selectedSnapshotIds = selectedSnapshotIds.filter(id => id !== s.id);
+                } else {
+                    selectedSnapshotIds.push(s.id);
+                }
+                updateSnapshotsUI();
+            } else {
+                selectedSnapshotIds = [];
+                restoreSnapshot(s.id);
+            }
+        });
+
         item.querySelector('.snapshot-delete-btn').addEventListener('click', (e) => deleteSnapshot(s.id, e));
 
         list.appendChild(item);
@@ -2227,4 +2245,123 @@ if (targetTab) {
     if (tabElement) {
         setTimeout(() => tabElement.click(), 100);
     }
+}
+
+// Comparison Feature Logic
+const compareBtn = document.getElementById('compare-btn');
+
+if (compareBtn) {
+    compareBtn.addEventListener('click', enterComparisonMode);
+}
+
+async function enterComparisonMode() {
+    let sourceL = null; // Left source
+    let sourceR = null; // Right source
+
+    if (selectedSnapshotIds.length >= 2) {
+        // Compare two selected snapshots (top two in selection)
+        sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
+        sourceR = snapshots.find(s => s.id === selectedSnapshotIds[1]);
+    } else if (selectedSnapshotIds.length === 1) {
+        // Compare selected snapshot with current edit
+        sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
+        sourceR = {
+            isCurrent: true,
+            width: canvas.width,
+            height: canvas.height
+        };
+    } else {
+        // Compare original background with current edit
+        sourceL = { isOriginal: true, width: canvas.width, height: canvas.height };
+        sourceR = { isCurrent: true, width: canvas.width, height: canvas.height };
+    }
+
+    if (!sourceL || !sourceR) return;
+
+    // Save current state before switching if there are shapes
+    if (shapes.length > 0) {
+        saveState();
+    }
+
+    const gap = 40;
+    const canvasW = sourceL.width + sourceR.width + gap;
+    const canvasH = Math.max(sourceL.height, sourceR.height);
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = canvasW;
+    offCanvas.height = canvasH;
+    const offCtx = offCanvas.getContext('2d');
+
+    // Background white
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0, 0, canvasW, canvasH);
+
+    // Render Left
+    await renderToCtx(offCtx, sourceL, 0, 0);
+    // Render Right
+    await renderToCtx(offCtx, sourceR, sourceL.width + gap, 0);
+
+    // Add labels
+    offCtx.fillStyle = '#6366f1';
+    offCtx.font = 'bold 24px Inter, sans-serif';
+    offCtx.fillText(getLabel(sourceL, 'Left'), 20, 40);
+    offCtx.fillText(getLabel(sourceR, 'Right'), sourceL.width + gap + 20, 40);
+
+    // Apply to Main Canvas
+    const combinedDataUrl = offCanvas.toDataURL('image/png');
+
+    // Clear everything and set new background
+    img = new Image();
+    img.onload = () => {
+        canvas.width = canvasW;
+        canvas.height = canvasH;
+        cropData = null; // Reset crop for the new comparison view
+        shapes = []; // Clear shapes to allow "drawing again"
+        activeSnapshotId = null;
+        selectedSnapshotIds = [];
+        updateSnapshotsUI();
+        saveState();
+        redraw();
+
+        // Switch to Home tab
+        const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
+        if (homeTab) homeTab.click();
+    };
+    img.src = combinedDataUrl;
+}
+
+function getLabel(source, fallback) {
+    if (source.isOriginal) return 'Original';
+    if (source.isCurrent) return 'Current Edit';
+    if (source.timestamp) return `Snapshot: ${source.timestamp}`;
+    return fallback;
+}
+
+function renderToCtx(ctx, source, offsetX, offsetY) {
+    return new Promise((resolve) => {
+        if (source.isCurrent) {
+            // Current canvas state
+            ctx.drawImage(canvas, offsetX, offsetY);
+            resolve();
+        } else if (source.isOriginal) {
+            // Original background (respecting current crop)
+            if (img && img.complete) {
+                if (cropData) {
+                    ctx.drawImage(img, cropData.x, cropData.y, cropData.w, cropData.h, offsetX, offsetY, cropData.w, cropData.h);
+                } else {
+                    ctx.drawImage(img, offsetX, offsetY);
+                }
+            }
+            resolve();
+        } else {
+            // A snapshot from storage
+            const sImg = new Image();
+            sImg.onload = () => {
+                ctx.drawImage(sImg, offsetX, offsetY);
+                resolve();
+            };
+            // Use high-quality full rendered image if available
+            sImg.src = source.fullRenderedImage || source.backgroundImage || source.thumbnail;
+        }
+    });
 }

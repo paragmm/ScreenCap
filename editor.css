@@ -1404,6 +1404,17 @@ input[type="color"]::-webkit-color-swatch {
   transition: transform 0.2s;
 }
 
+.snapshot-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+}
+
+.snapshot-item.selected {
+  border-color: #fbbf24;
+  /* Amber/Yellow for multi-selection */
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.4);
+}
+
 .snapshot-item:hover .snapshot-info {
   transform: translateY(0);
 }
@@ -1444,4 +1455,84 @@ input[type="color"]::-webkit-color-swatch {
 
 .ribbon-btn.primary:hover {
   background: rgba(99, 102, 241, 0.1);
+}
+
+/* Comparison Modal Styles */
+.large-modal {
+  max-width: 90vw !important;
+  width: 1200px !important;
+}
+
+.compare-container {
+  display: flex;
+  gap: 20px;
+  height: 60vh;
+}
+
+.compare-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.compare-label {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #94a3b8;
+  /* Matching text-muted */
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.img-wrapper {
+  flex: 1;
+  background: #0f172a;
+  /* Dark background for modal */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.img-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Fix for close button if missing - ensuring consistency */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.close-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Modal footer buttons specific */
+.modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 20px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
