@@ -2642,3 +2642,48 @@ function renderToCtx(ctx, source, offsetX, offsetY) {
         }
     });
 }
+
+// Settings
+const canvasBgColorInput = document.getElementById('canvas-bg-color');
+if (canvasBgColorInput) {
+    canvasBgColorInput.addEventListener('input', (e) => {
+        canvas.style.backgroundColor = e.target.value;
+    });
+}
+
+const resetSettingsBtn = document.getElementById('reset-settings-btn');
+if (resetSettingsBtn) {
+    resetSettingsBtn.addEventListener('click', () => {
+        if (confirm('Reset all editor settings to default?')) {
+            // Reset Canvas BG
+            if (canvasBgColorInput) {
+                canvasBgColorInput.value = '#ffffff';
+                canvas.style.backgroundColor = '#ffffff';
+            }
+
+            // Reset Stroke Color
+            currentColor = '#6366f1';
+            const colorPicker = document.getElementById('color-picker');
+            if (colorPicker) colorPicker.value = currentColor;
+
+            // Reset Thickness
+            currentThickness = 3;
+            const thicknessSlider = document.getElementById('line-thickness');
+            if (thicknessSlider) thicknessSlider.value = currentThickness;
+            const thicknessValDisplay = document.getElementById('thickness-val');
+            if (thicknessValDisplay) thicknessValDisplay.innerText = '3px';
+
+            // Reset Text settings
+            currentFontSize = 20;
+            const fontSizeInput = document.getElementById('font-size');
+            if (fontSizeInput) fontSizeInput.value = 20;
+
+            currentFontFamily = 'Inter, sans-serif';
+            const fontFamilySelect = document.getElementById('font-family');
+            if (fontFamilySelect) fontFamilySelect.value = currentFontFamily;
+
+            saveState();
+            redraw();
+        }
+    });
+}
