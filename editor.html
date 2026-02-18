@@ -407,6 +407,21 @@
         </div>
     </div>
 
+    <!-- Comparison Bar (Hidden by default) -->
+    <div id="comparison-bar" class="comparison-bar" style="display: none;">
+        <div class="comparison-info">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+            </svg>
+            <span id="comparison-label">Comparing Modes</span>
+        </div>
+        <button id="exit-comparison-btn" class="btn-ghost btn-sm-compact">
+            Exit Comparison
+        </button>
+    </div>
+    </div>
+
     <div class="main-container">
         <div class="canvas-container">
             <canvas id="editor-canvas"></canvas>

@@ -1576,3 +1576,54 @@ input[type="color"]::-webkit-color-swatch {
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* Comparison Bar */
+.comparison-bar {
+  background: #312e81;
+  /* Indigo 900 */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  animation: slideDown 0.3s ease-out;
+}
+
+.comparison-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.comparison-info svg {
+  color: #818cf8;
+  /* Indigo 400 */
+}
+
+.btn-sm-compact {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.btn-sm-compact:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

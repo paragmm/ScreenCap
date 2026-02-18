@@ -2274,8 +2274,52 @@ if (targetTab) {
 // Comparison Feature Logic
 const compareBtn = document.getElementById('compare-btn');
 
+// Comparison Bar Elements
+const comparisonBar = document.getElementById('comparison-bar');
+const comparisonLabel = document.getElementById('comparison-label');
+const exitComparisonBtn = document.getElementById('exit-comparison-btn');
+let preComparisonState = null;
+
 if (compareBtn) {
     compareBtn.addEventListener('click', enterComparisonMode);
+}
+
+if (exitComparisonBtn) {
+    exitComparisonBtn.addEventListener('click', exitComparisonMode);
+}
+
+function exitComparisonMode() {
+    if (!preComparisonState) return;
+
+    if (confirm('Exit comparison mode? Any drawings on the comparison view will be lost.')) {
+        // Restore dimensions
+        canvas.width = preComparisonState.width;
+        canvas.height = preComparisonState.height;
+
+        // Restore State
+        shapes = JSON.parse(JSON.stringify(preComparisonState.shapes));
+        cropData = preComparisonState.cropData ? JSON.parse(JSON.stringify(preComparisonState.cropData)) : null;
+        history = [...preComparisonState.history];
+        historyIndex = preComparisonState.historyIndex;
+
+        // Restore Image
+        img = new Image();
+        img.onload = () => {
+            redraw();
+            updateLayersList();
+            updateHistoryButtons();
+        };
+        img.src = preComparisonState.imgSrc;
+
+        // UI Updates
+        comparisonBar.style.display = 'none';
+        preComparisonState = null;
+
+        // Reset selection mode
+        isComparisonSelectionMode = false;
+        selectedSnapshotIds = [];
+        updateSnapshotsUI();
+    }
 }
 
 async function enterComparisonMode() {
@@ -2321,10 +2365,16 @@ async function enterComparisonMode() {
         return;
     }
 
-    // Save current state before switching if there are shapes
-    if (shapes.length > 0) {
-        saveState();
-    }
+    // Save current state before switching
+    preComparisonState = {
+        width: canvas.width,
+        height: canvas.height,
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        cropData: cropData ? JSON.parse(JSON.stringify(cropData)) : null,
+        imgSrc: img.src,
+        history: [...history],
+        historyIndex: historyIndex
+    };
 
     const gap = 40;
     const canvasW = sourceL.width + sourceR.width + gap;
@@ -2370,6 +2420,14 @@ async function enterComparisonMode() {
 
         saveState();
         redraw();
+
+        // Show Bar
+        if (comparisonBar) {
+            comparisonBar.style.display = 'flex';
+            const labelL = getLabel(sourceL, 'Left');
+            const labelR = getLabel(sourceR, 'Right');
+            if (comparisonLabel) comparisonLabel.innerText = `Comparing: ${labelL} vs ${labelR}`;
+        }
 
         // Switch to Home tab
         const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
