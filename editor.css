@@ -1415,6 +1415,46 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.4);
 }
 
+.snapshot-check-container {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+.snapshots-list-container.selection-mode .snapshot-check-container {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.snapshot-checkbox {
+  width: 12px;
+  height: 12px;
+  accent-color: #fbbf24;
+  cursor: pointer;
+  margin: 0;
+}
+
+.snapshot-item.selected .snapshot-check-container {
+  background: #fbbf24;
+  border-color: #fbbf24;
+}
+
+.snapshot-item.selected .snapshot-checkbox {
+  accent-color: #1e293b;
+}
+
 .snapshot-item:hover .snapshot-info {
   transform: translateY(0);
 }

@@ -2172,10 +2172,17 @@ function deleteSnapshot(id, event) {
 }
 
 let selectedSnapshotIds = [];
+let isComparisonSelectionMode = false;
 
 function updateSnapshotsUI() {
     const list = document.getElementById('snapshots-list');
     if (!list) return;
+
+    if (isComparisonSelectionMode) {
+        list.classList.add('selection-mode');
+    } else {
+        list.classList.remove('selection-mode');
+    }
 
     if (snapshots.length === 0) {
         list.innerHTML = '<div class="no-snapshots">No snapshots saved yet</div>';
@@ -2189,8 +2196,11 @@ function updateSnapshotsUI() {
         if (s.id === activeSnapshotId) item.classList.add('active');
         if (selectedSnapshotIds.includes(s.id)) item.classList.add('selected');
 
-        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore (or Ctrl+Click to multi-select)';
+        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore (or use checkbox for comparison)';
         item.innerHTML = `
+            <div class="snapshot-check-container">
+                <input type="checkbox" class="snapshot-checkbox" ${selectedSnapshotIds.includes(s.id) ? 'checked' : ''}>
+            </div>
             <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
             <div class="snapshot-info">
                 <span class="snapshot-time">${s.timestamp}</span>
@@ -2199,23 +2209,37 @@ function updateSnapshotsUI() {
         `;
 
         item.addEventListener('click', (e) => {
-            if (e.ctrlKey) {
-                if (selectedSnapshotIds.includes(s.id)) {
-                    selectedSnapshotIds = selectedSnapshotIds.filter(id => id !== s.id);
-                } else {
-                    selectedSnapshotIds.push(s.id);
-                }
-                updateSnapshotsUI();
+            if (isComparisonSelectionMode) {
+                toggleSnapshotSelection(s.id);
             } else {
-                selectedSnapshotIds = [];
-                restoreSnapshot(s.id);
+                if (e.ctrlKey) {
+                    toggleSnapshotSelection(s.id);
+                } else {
+                    selectedSnapshotIds = [];
+                    restoreSnapshot(s.id);
+                }
             }
+        });
+
+        const checkbox = item.querySelector('.snapshot-checkbox');
+        checkbox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSnapshotSelection(s.id);
         });
 
         item.querySelector('.snapshot-delete-btn').addEventListener('click', (e) => deleteSnapshot(s.id, e));
 
         list.appendChild(item);
     });
+}
+
+function toggleSnapshotSelection(id) {
+    if (selectedSnapshotIds.includes(id)) {
+        selectedSnapshotIds = selectedSnapshotIds.filter(sid => sid !== id);
+    } else {
+        selectedSnapshotIds.push(id);
+    }
+    updateSnapshotsUI();
 }
 
 // Event Listeners for Snapshots
@@ -2255,6 +2279,18 @@ if (compareBtn) {
 }
 
 async function enterComparisonMode() {
+    // If not in selection mode and no snapshots are selected, just enter selection mode
+    if (!isComparisonSelectionMode && selectedSnapshotIds.length === 0) {
+        isComparisonSelectionMode = true;
+        updateSnapshotsUI();
+
+        // Change button visual temporarily to indicate "Proceed"
+        const span = compareBtn.querySelector('span');
+        if (span) span.innerText = 'Start Compare';
+        return;
+    }
+
+    // If we reach here, we are performing the comparison
     let sourceL = null; // Left source
     let sourceR = null; // Right source
 
@@ -2276,7 +2312,14 @@ async function enterComparisonMode() {
         sourceR = { isCurrent: true, width: canvas.width, height: canvas.height };
     }
 
-    if (!sourceL || !sourceR) return;
+    if (!sourceL || !sourceR) {
+        // Fallback if something went wrong
+        isComparisonSelectionMode = false;
+        updateSnapshotsUI();
+        const span = compareBtn.querySelector('span');
+        if (span) span.innerText = 'Compare';
+        return;
+    }
 
     // Save current state before switching if there are shapes
     if (shapes.length > 0) {
@@ -2319,7 +2362,12 @@ async function enterComparisonMode() {
         shapes = []; // Clear shapes to allow "drawing again"
         activeSnapshotId = null;
         selectedSnapshotIds = [];
+        isComparisonSelectionMode = false; // Reset mode
         updateSnapshotsUI();
+
+        const span = compareBtn.querySelector('span');
+        if (span) span.innerText = 'Compare';
+
         saveState();
         redraw();
 
