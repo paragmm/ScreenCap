@@ -308,6 +308,42 @@ body {
   padding: 0 8px;
 }
 
+.config-item.vertical {
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.3);
+  padding: 6px 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s;
+}
+
+.config-item.vertical:hover {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: var(--primary);
+}
+
+.config-item.vertical .config-label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.config-item.vertical input[type="number"] {
+  width: 50px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #fff;
+  padding: 2px;
+  text-align: center;
+  outline: none;
+}
+
+.config-item.vertical input[type="number"]:focus {
+  border-color: var(--primary);
+}
+
 .slider-wrapper {
   display: flex;
   align-items: center;
