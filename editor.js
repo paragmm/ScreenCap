@@ -139,6 +139,7 @@ chrome.storage.local.get(['capturedImage', 'cropData', 'comparisonLimit'], (resu
         canvas.style.display = 'none';
         redraw();
     }
+    updateUIForSelection(null);
 });
 
 function saveState() {
@@ -354,7 +355,7 @@ function updateUIForSelection(shape) {
         if (textGroup) textGroup.style.display = (currentTool === 'text' || currentTool === 'textarea') ? 'flex' : 'none';
         if (blurGroup) blurGroup.style.display = (currentTool === 'blur') ? 'flex' : 'none';
 
-        const hideAppearanceAndSize = ['blur', 'text', 'textarea'].includes(currentTool);
+        const hideAppearanceAndSize = ['blur', 'text', 'textarea', 'select'].includes(currentTool);
         if (appearanceGroup) appearanceGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
         if (sizeGroup) sizeGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
 
