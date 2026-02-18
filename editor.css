@@ -1445,20 +1445,19 @@ input[type="color"]::-webkit-color-swatch {
   transition: transform 0.2s;
 }
 
-.snapshot-thumb-container:hover .snapshot-info,
-.snapshot-thumb-container:hover .snapshot-check-container {
+.snapshot-thumb-container:hover .snapshot-info {
   transform: translateY(0);
-  opacity: 1;
 }
+
 
 .snapshot-check-container {
   position: absolute;
-  top: 24px;
+  top: 4px;
   right: 4px;
   width: 18px;
   height: 18px;
   background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--primary);
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -1466,12 +1465,14 @@ input[type="color"]::-webkit-color-swatch {
   opacity: 0;
   pointer-events: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.snapshots-list-container.selection-mode .snapshot-check-container {
+.selection-mode .snapshot-check-container {
   opacity: 1;
   pointer-events: auto;
+  transform: translateY(0);
 }
 
 .snapshot-checkbox {
