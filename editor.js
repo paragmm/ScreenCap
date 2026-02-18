@@ -59,7 +59,8 @@ let typeCounters = {
     text: 0,
     textarea: 0,
     polygon: 0,
-    group: 0
+    group: 0,
+    blur: 0
 };
 
 function getUniqueName(type) {
@@ -309,16 +310,31 @@ function updateUIForSelection(shape) {
         const radiusGroup = document.getElementById('format-radius-group');
         const polygonGroup = document.getElementById('format-polygon-group');
         const textGroup = document.getElementById('format-text-group');
+        const blurGroup = document.getElementById('format-blur-group');
+        const appearanceGroup = document.getElementById('appearance-ribbon-group');
+        const sizeGroup = document.getElementById('size-ribbon-group');
 
         if (radiusGroup) radiusGroup.style.display = (shape.type === 'rect') ? 'flex' : 'none';
         if (polygonGroup) polygonGroup.style.display = (shape.type === 'polygon') ? 'flex' : 'none';
         if (textGroup) textGroup.style.display = (shape.type === 'text' || shape.type === 'textarea') ? 'flex' : 'none';
+        if (blurGroup) blurGroup.style.display = (shape.type === 'blur') ? 'flex' : 'none';
+
+        const hideAppearanceAndSize = ['blur', 'text', 'textarea'].includes(shape.type);
+        if (appearanceGroup) appearanceGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
+        if (sizeGroup) sizeGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
 
         // Update Fill visibility on Home tab
         const fillGroup = document.getElementById('fill-control-group');
         if (fillGroup) {
             const supportsFill = ['rect', 'circle', 'oval', 'polygon'].includes(shape.type);
             fillGroup.style.display = supportsFill ? 'flex' : 'none';
+        }
+
+        if (shape.type === 'blur' && blurGroup) {
+            const blurInput = document.getElementById('blur-amount');
+            const blurVal = document.getElementById('blur-val');
+            if (blurInput) blurInput.value = shape.blurAmount || 15;
+            if (blurVal) blurVal.innerText = `${shape.blurAmount || 15}px`;
         }
     } else {
         updateThicknessInputFromShape(null);
@@ -329,10 +345,18 @@ function updateUIForSelection(shape) {
         const radiusGroup = document.getElementById('format-radius-group');
         const polygonGroup = document.getElementById('format-polygon-group');
         const textGroup = document.getElementById('format-text-group');
+        const blurGroup = document.getElementById('format-blur-group');
+        const appearanceGroup = document.getElementById('appearance-ribbon-group');
+        const sizeGroup = document.getElementById('size-ribbon-group');
 
         if (radiusGroup) radiusGroup.style.display = (currentTool === 'rect') ? 'flex' : 'none';
         if (polygonGroup) polygonGroup.style.display = (currentTool === 'polygon') ? 'flex' : 'none';
         if (textGroup) textGroup.style.display = (currentTool === 'text' || currentTool === 'textarea') ? 'flex' : 'none';
+        if (blurGroup) blurGroup.style.display = (currentTool === 'blur') ? 'flex' : 'none';
+
+        const hideAppearanceAndSize = ['blur', 'text', 'textarea'].includes(currentTool);
+        if (appearanceGroup) appearanceGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
+        if (sizeGroup) sizeGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
 
         const fillGroup = document.getElementById('fill-control-group');
         if (fillGroup) {
@@ -506,6 +530,7 @@ function getLayerIcon(shape) {
         case 'text': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`;
         case 'textarea': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="13" y2="16"></line></svg>`;
         case 'polygon': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="${fillRGBA}"><path d="M12 2L2 9l4 11h12l4-11z"></path></svg>`;
+        case 'blur': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="12" cy="12" r="4" fill="${strokeRGBA}" opacity="0.5"></circle></svg>`;
         case 'group': return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="${strokeRGBA}" fill="none"><rect x="4" y="4" width="6" height="6"></rect><rect x="14" y="4" width="6" height="6"></rect><rect x="4" y="14" width="6" height="6"></rect><rect x="14" y="14" width="6" height="6"></rect></svg>`;
         default: return '';
     }
@@ -580,12 +605,48 @@ function drawShape(shape) {
         case 'polygon':
             drawShapeInternal(ctx, shape, hexToRGBA);
             break;
+        case 'blur':
+            drawBlur(ctx, shape);
+            break;
         case 'group':
             if (shape.shapes) {
                 shape.shapes.forEach(s => drawShape(s));
             }
             break;
     }
+    ctx.restore();
+}
+
+function drawBlur(ctx, shape) {
+    const amount = shape.blurAmount || 15;
+
+    // Create a temporary canvas to hold the current state
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(canvas, 0, 0);
+
+    ctx.save();
+
+    // The main context already has the transformation (translation/rotation) applied
+    // Draw the clipping path in local coordinates
+    ctx.beginPath();
+    ctx.rect(shape.x, shape.y, shape.w, shape.h);
+    ctx.clip();
+
+    // Apply blur filter
+    ctx.filter = `blur(${amount}px)`;
+
+    // To draw the tempCanvas back correctly while transformed, 
+    // we reset the transform temporarily to world space for the drawImage call.
+    const currentTransform = ctx.getTransform();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Restore the transform for any subsequent drawing in this save/restore block
+    ctx.setTransform(currentTransform);
+
     ctx.restore();
 }
 
@@ -927,6 +988,26 @@ if (polygonSidesInput && polygonSidesRange) {
                 redraw();
             }
         });
+    });
+}
+
+const blurAmountInput = document.getElementById('blur-amount');
+const blurValDisplay = document.getElementById('blur-val');
+if (blurAmountInput) {
+    blurAmountInput.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value) || 1;
+        if (blurValDisplay) blurValDisplay.innerText = `${val}px`;
+
+        if (selectedShape && selectedShape.type === 'blur') {
+            selectedShape.blurAmount = val;
+            redraw();
+        }
+    });
+
+    blurAmountInput.addEventListener('change', () => {
+        if (selectedShape && selectedShape.type === 'blur') {
+            saveState();
+        }
     });
 }
 
@@ -1428,7 +1509,7 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentTool === 'pen') {
         shapes[shapes.length - 1].points.push({ x: currentX, y: currentY });
         redraw();
-    } else if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon'].includes(currentTool)) {
+    } else if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon', 'blur'].includes(currentTool)) {
         redraw();
         // Draw the shape being created (not yet in shapes array) - passing true for isPreview
         const tempShape = createShape(currentTool, startX, startY, currentX, currentY, true);
@@ -1456,6 +1537,7 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
             break;
         case 'rect':
         case 'textarea':
+        case 'blur':
             shape.x = Math.min(x1, x2);
             shape.y = Math.min(y1, y2);
             shape.w = Math.abs(x2 - x1);
@@ -1475,6 +1557,11 @@ function createShape(type, x1, y1, x2, y2, isPreview = false) {
                 shape.bold = currentBold;
                 shape.italic = currentItalic;
                 shape.underline = currentUnderline;
+            }
+            if (type === 'blur') {
+                shape.blurAmount = parseInt(document.getElementById('blur-amount').value) || 15;
+                shape.color = '#ffffff00';
+                shape.fillColor = '#ffffff00';
             }
             break;
         case 'circle':
@@ -1503,6 +1590,7 @@ function resizeShape(shape, handleType, dx, dy, mouseX, mouseY) {
         case 'rect':
         case 'textarea':
         case 'polygon':
+        case 'blur':
             resizeRect(shape, handleType, dx, dy);
             break;
         case 'oval':
@@ -1654,7 +1742,7 @@ canvas.addEventListener('mouseup', (e) => {
         return;
     }
 
-    if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon'].includes(currentTool)) {
+    if (['line', 'rect', 'circle', 'arrow', 'textarea', 'polygon', 'blur'].includes(currentTool)) {
         const newShape = createShape(currentTool, startX, startY, endX, endY, false);
         if (currentTool === 'textarea') {
             if (newShape.w > 10 && newShape.h > 10) {
@@ -1941,7 +2029,8 @@ document.addEventListener('keydown', (e) => {
             'l': 'line',
             'a': 'arrow',
             'g': 'polygon',
-            'x': 'crop'
+            'x': 'crop',
+            'b': 'blur'
         };
 
         if (toolMap[key]) {
