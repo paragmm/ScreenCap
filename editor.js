@@ -1682,9 +1682,6 @@ canvas.addEventListener('dblclick', (e) => {
 // Actions
 document.querySelectorAll('[id="save-btn"]').forEach(btn => {
     btn.addEventListener('click', () => {
-        // Also save a snapshot for future drawing
-        takeSnapshot();
-
         // Temporarily deselect to avoid handles in screenshot
         const tempSelectedShape = selectedShape;
         const tempSelectedShapes = [...selectedShapes];
