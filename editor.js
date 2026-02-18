@@ -2224,7 +2224,7 @@ function updateSnapshotsUI() {
     }
 
     list.innerHTML = '';
-    snapshots.forEach(s => {
+    snapshots.forEach((s, index) => {
         const item = document.createElement('div');
         item.className = 'snapshot-item';
         if (s.id === activeSnapshotId) item.classList.add('active');
@@ -2232,6 +2232,7 @@ function updateSnapshotsUI() {
 
         item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore (or use checkbox for comparison)';
         item.innerHTML = `
+            <div class="snapshot-name">Snap ${snapshots.length - index}</div>
             <div class="snapshot-check-container">
                 <input type="checkbox" class="snapshot-checkbox" ${selectedSnapshotIds.includes(s.id) ? 'checked' : ''}>
             </div>
