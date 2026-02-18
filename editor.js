@@ -249,6 +249,15 @@ function updateHistoryButtons() {
 }
 
 function redraw() {
+    // Update button states based on editor visibility
+    const isVisible = canvas.style.display !== 'none';
+    const takeSnapshotBtnInner = document.getElementById('take-snapshot-btn');
+    if (takeSnapshotBtnInner) {
+        takeSnapshotBtnInner.disabled = !isVisible;
+        takeSnapshotBtnInner.style.opacity = isVisible ? '1' : '0.5';
+        takeSnapshotBtnInner.style.pointerEvents = isVisible ? 'auto' : 'none';
+    }
+
     // Ensure valid context and dimensions
     if (!ctx || canvas.width === 0 || canvas.height === 0) return;
 
