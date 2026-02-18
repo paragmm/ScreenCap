@@ -1390,6 +1390,16 @@ input[type="color"]::-webkit-color-swatch {
   position: relative;
   overflow: hidden;
   background: #000;
+  transition: opacity 0.2s ease;
+}
+
+.snapshot-thumb-container.selection-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.snapshot-thumb-container.selection-disabled img {
+  filter: grayscale(1);
 }
 
 .snapshot-name {

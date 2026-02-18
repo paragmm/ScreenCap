@@ -2253,20 +2253,24 @@ function updateSnapshotsUI() {
         return;
     }
 
+    const limitReached = selectedSnapshotIds.length >= comparisonLimit;
+
     list.innerHTML = '';
     snapshots.forEach((s, index) => {
         const item = document.createElement('div');
         item.className = 'snapshot-item';
         if (s.id === activeSnapshotId) item.classList.add('active');
-        if (selectedSnapshotIds.includes(s.id)) item.classList.add('selected');
+        const isSelected = selectedSnapshotIds.includes(s.id);
+        if (isSelected) item.classList.add('selected');
 
         const displayName = s.name || `Snap ${snapshots.length - index}`;
+        const checkboxDisabled = !isSelected && limitReached;
 
         item.innerHTML = `
-            <div class="snapshot-thumb-container">
+            <div class="snapshot-thumb-container ${checkboxDisabled ? 'selection-disabled' : ''}">
                 <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
                 <div class="snapshot-check-container">
-                    <input type="checkbox" class="snapshot-checkbox" ${selectedSnapshotIds.includes(s.id) ? 'checked' : ''}>
+                    <input type="checkbox" class="snapshot-checkbox" ${isSelected ? 'checked' : ''} ${checkboxDisabled ? 'disabled' : ''}>
                 </div>
                 <div class="snapshot-info">
                     <span class="snapshot-time">${s.timestamp}</span>
@@ -2344,7 +2348,11 @@ function toggleSnapshotSelection(id) {
     if (selectedSnapshotIds.includes(id)) {
         selectedSnapshotIds = selectedSnapshotIds.filter(sid => sid !== id);
     } else {
-        selectedSnapshotIds.push(id);
+        if (selectedSnapshotIds.length < comparisonLimit) {
+            selectedSnapshotIds.push(id);
+        } else {
+            alert(`You can only compare up to ${comparisonLimit} snapshots with your current settings.`);
+        }
     }
     updateSnapshotsUI();
 }
@@ -2458,67 +2466,43 @@ async function enterComparisonMode() {
     }
 
     // If we reach here, we are performing the comparison
-    let sourceL = null; // Left source
-    let sourceR = null; // Right source
-
+    let sources = [];
     const hasCurrent = canvas.style.display !== 'none' && img && img.src;
 
-    if (!hasCurrent && selectedSnapshotIds.length === 0) {
-        alert('Please select at least one snapshot to compare.');
+    if (selectedSnapshotIds.length > 0) {
+        // Use selected snapshots (in selection order)
+        selectedSnapshotIds.forEach(id => {
+            const snap = snapshots.find(s => s.id === id);
+            if (snap) sources.push(snap);
+        });
+    }
 
-        // Reset button text
-        const span = compareBtn.querySelector('span');
-        if (span) span.innerText = 'Compare';
-
-        // Reset selection mode if we were just starting
-        if (selectedSnapshotIds.length === 0) {
+    // Handle single or no selection scenarios
+    if (sources.length === 1) {
+        if (hasCurrent) {
+            // Compare selected with current
+            sources.push({ isCurrent: true, width: canvas.width, height: canvas.height });
+        } else {
+            // Compare selected with its original state
+            sources.unshift({ isSnapshotOriginal: true, snapshot: sources[0], width: sources[0].width, height: sources[0].height });
+        }
+    } else if (sources.length === 0) {
+        if (hasCurrent) {
+            // Compare original vs current
+            sources.push({ isOriginal: true, width: canvas.width, height: canvas.height });
+            sources.push({ isCurrent: true, width: canvas.width, height: canvas.height });
+        } else {
+            alert('Please select at least one snapshot to compare.');
             isComparisonSelectionMode = false;
             updateSnapshotsUI();
+            const span = compareBtn.querySelector('span');
+            if (span) span.innerText = 'Compare';
+            return;
         }
-        return;
-    }
-
-    if (selectedSnapshotIds.length >= 2) {
-        // Compare two selected snapshots (top two in selection)
-        sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
-        sourceR = snapshots.find(s => s.id === selectedSnapshotIds[1]);
-    } else if (selectedSnapshotIds.length === 1) {
-        // Compare selected snapshot...
-        sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
-
-        if (hasCurrent) {
-            // ...with current edit
-            sourceR = {
-                isCurrent: true,
-                width: canvas.width,
-                height: canvas.height
-            };
-        } else {
-            // ...with its own original background
-            sourceR = {
-                isSnapshotOriginal: true,
-                snapshot: sourceL,
-                width: sourceL.width,
-                height: sourceL.height
-            };
-        }
-    } else {
-        // Compare original background with current edit
-        sourceL = { isOriginal: true, width: canvas.width, height: canvas.height };
-        sourceR = { isCurrent: true, width: canvas.width, height: canvas.height };
-    }
-
-    if (!sourceL || !sourceR) {
-        // Fallback if something went wrong
-        isComparisonSelectionMode = false;
-        updateSnapshotsUI();
-        const span = compareBtn.querySelector('span');
-        if (span) span.innerText = 'Compare';
-        return;
     }
 
     // Save current state before switching
-    canvas.style.display = 'block'; // Ensure canvas is visible for comparison
+    canvas.style.display = 'block';
     preComparisonState = {
         width: canvas.width,
         height: canvas.height,
@@ -2527,12 +2511,12 @@ async function enterComparisonMode() {
         imgSrc: img.src,
         history: [...history],
         historyIndex: historyIndex,
-        isCanvasVisible: hasCurrent // Remember if it was visible
+        isCanvasVisible: hasCurrent
     };
 
     const gap = 40;
-    const canvasW = sourceL.width + sourceR.width + gap;
-    const canvasH = Math.max(sourceL.height, sourceR.height);
+    const canvasW = sources.reduce((sum, s) => sum + s.width, 0) + (sources.length - 1) * gap;
+    const canvasH = Math.max(...sources.map(s => s.height));
 
     const offCanvas = document.createElement('canvas');
     offCanvas.width = canvasW;
@@ -2543,24 +2527,25 @@ async function enterComparisonMode() {
     offCtx.fillStyle = '#ffffff';
     offCtx.fillRect(0, 0, canvasW, canvasH);
 
-    // Render Left
-    await renderToCtx(offCtx, sourceL, 0, 0);
-    // Render Right
-    await renderToCtx(offCtx, sourceR, sourceL.width + gap, 0);
+    // Render all sources
+    let currentX = 0;
+    for (const source of sources) {
+        await renderToCtx(offCtx, source, currentX, 0);
+        currentX += source.width + gap;
+    }
 
     // Apply to Main Canvas
     const combinedDataUrl = offCanvas.toDataURL('image/png');
 
-    // Clear everything and set new background
     img = new Image();
     img.onload = () => {
         canvas.width = canvasW;
         canvas.height = canvasH;
-        cropData = null; // Reset crop for the new comparison view
-        shapes = []; // Clear shapes to allow "drawing again"
+        cropData = null;
+        shapes = [];
         activeSnapshotId = null;
         selectedSnapshotIds = [];
-        isComparisonSelectionMode = false; // Reset mode
+        isComparisonSelectionMode = false;
         updateSnapshotsUI();
 
         const span = compareBtn.querySelector('span');
@@ -2572,14 +2557,17 @@ async function enterComparisonMode() {
         // Show Bar
         if (comparisonBar) {
             comparisonBar.style.display = 'flex';
-            const labelL = getLabel(sourceL, 'Left');
-            const labelR = getLabel(sourceR, 'Right');
-            if (comparisonLabel) comparisonLabel.innerText = `Comparing: ${labelL} vs ${labelR}`;
+            const labels = sources.map((s, i) => getLabel(s, `Source ${i + 1}`));
+            if (comparisonLabel) comparisonLabel.innerText = `Comparing: ${labels.join(' vs ')}`;
         }
 
         // Switch to Home tab
-        const homeTab = document.querySelector('.ribbon-tab[data-tab="home"]');
-        if (homeTab) homeTab.click();
+        document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
+        const homeTab = document.querySelector('[data-tab="home"]');
+        if (homeTab) homeTab.classList.add('active');
+        document.querySelectorAll('.ribbon-content').forEach(c => c.classList.remove('active'));
+        const homeContent = document.getElementById('tab-home');
+        if (homeContent) homeContent.classList.add('active');
     };
     img.src = combinedDataUrl;
 }
@@ -2587,15 +2575,17 @@ async function enterComparisonMode() {
 function getLabel(source, fallback) {
     if (source.isOriginal) return 'Original';
     if (source.isSnapshotOriginal) {
+        if (source.snapshot && source.snapshot.name) return `Original (${source.snapshot.name})`;
         const snapIndex = snapshots.findIndex(s => s.id === source.snapshot.id);
         if (snapIndex !== -1) return `Original (Snap ${snapshots.length - snapIndex})`;
         return 'Original (Snapshot)';
     }
     if (source.isCurrent) return 'Current Edit';
+    if (source.name) return source.name;
 
     const snapIndex = snapshots.findIndex(s => s.id === source.id);
     if (snapIndex !== -1) {
-        return `Snap ${snapshots.length - snapIndex}`;
+        return snapshots[snapIndex].name || `Snap ${snapshots.length - snapIndex}`;
     }
 
     if (source.timestamp) return `Snapshot: ${source.timestamp}`;
@@ -2651,6 +2641,18 @@ if (canvasBgColorInput) {
     });
 }
 
+let comparisonLimit = 2;
+const comparisonLimitInput = document.getElementById('comparison-limit');
+if (comparisonLimitInput) {
+    comparisonLimitInput.addEventListener('input', (e) => {
+        let val = parseInt(e.target.value);
+        if (val < 2) val = 2;
+        if (val > 5) val = 5;
+        comparisonLimit = val;
+        comparisonLimitInput.value = val;
+    });
+}
+
 const resetSettingsBtn = document.getElementById('reset-settings-btn');
 if (resetSettingsBtn) {
     resetSettingsBtn.addEventListener('click', () => {
@@ -2660,6 +2662,10 @@ if (resetSettingsBtn) {
                 canvasBgColorInput.value = '#ffffff';
                 canvas.style.backgroundColor = '#ffffff';
             }
+
+            // Reset Comparison Limit
+            comparisonLimit = 2;
+            if (comparisonLimitInput) comparisonLimitInput.value = 2;
 
             // Reset Stroke Color
             currentColor = '#6366f1';
