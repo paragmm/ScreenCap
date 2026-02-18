@@ -2429,12 +2429,6 @@ async function enterComparisonMode() {
     // Render Right
     await renderToCtx(offCtx, sourceR, sourceL.width + gap, 0);
 
-    // Add labels
-    offCtx.fillStyle = '#6366f1';
-    offCtx.font = 'bold 24px Inter, sans-serif';
-    offCtx.fillText(getLabel(sourceL, 'Left'), 20, 40);
-    offCtx.fillText(getLabel(sourceR, 'Right'), sourceL.width + gap + 20, 40);
-
     // Apply to Main Canvas
     const combinedDataUrl = offCanvas.toDataURL('image/png');
 
