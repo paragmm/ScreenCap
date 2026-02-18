@@ -924,13 +924,17 @@ if (polygonSidesInput && polygonSidesRange) {
 }
 
 document.getElementById('tool-clear-ribbon').addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear all shapes?')) {
+    if (confirm('Are you sure you want to clear the editor? This will remove the image and all shapes.')) {
         shapes = [];
         selectedShape = null;
+        img = new Image();
+        cropData = null;
+        canvas.style.display = 'none';
         // Reset counters
         Object.keys(typeCounters).forEach(key => typeCounters[key] = 0);
+        history = [];
+        historyIndex = -1;
         redraw();
-        saveState();
         updateLayersList();
     }
 });
@@ -2216,7 +2220,23 @@ let isComparisonSelectionMode = false;
 
 function updateSnapshotsUI() {
     const list = document.getElementById('snapshots-list');
+    const clearBtn = document.getElementById('clear-snapshots-btn');
+    const compareBtnInner = document.getElementById('compare-btn');
     if (!list) return;
+
+    // Update Clear All and Compare button states
+    const hasSnapshots = snapshots.length > 0;
+    const canCompare = snapshots.length >= 2;
+    if (clearBtn) {
+        clearBtn.disabled = !hasSnapshots;
+        clearBtn.style.opacity = hasSnapshots ? '1' : '0.5';
+        clearBtn.style.pointerEvents = hasSnapshots ? 'auto' : 'none';
+    }
+    if (compareBtnInner) {
+        compareBtnInner.disabled = !canCompare;
+        compareBtnInner.style.opacity = canCompare ? '1' : '0.5';
+        compareBtnInner.style.pointerEvents = canCompare ? 'auto' : 'none';
+    }
 
     if (isComparisonSelectionMode) {
         list.classList.add('selection-mode');
@@ -2292,9 +2312,21 @@ if (takeSnapshotBtn) {
 const clearSnapshotsBtn = document.getElementById('clear-snapshots-btn');
 if (clearSnapshotsBtn) {
     clearSnapshotsBtn.addEventListener('click', () => {
-        if (confirm('Delete all snapshots?')) {
+        if (confirm('Delete all snapshots? This will also clear the current editor.')) {
             snapshots = [];
-            chrome.storage.local.set({ snapshots: [] }, updateSnapshotsUI);
+            chrome.storage.local.set({ snapshots: [] }, () => {
+                updateSnapshotsUI();
+                // Clear editor too
+                shapes = [];
+                selectedShape = null;
+                img = new Image();
+                cropData = null;
+                canvas.style.display = 'none';
+                history = [];
+                historyIndex = -1;
+                redraw();
+                updateLayersList();
+            });
         }
     });
 }
