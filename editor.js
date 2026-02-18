@@ -2129,9 +2129,13 @@ function takeSnapshot() {
     thumbCtx.drawImage(canvas, 0, 0, thumbWidth, thumbHeight);
     const thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.7);
 
+    // Generate name
+    const defaultName = `Snap ${snapshots.length + 1}`;
+
     // Save full state
     const snapshot = {
         id: activeSnapshotId || Date.now(),
+        name: activeSnapshotId ? (snapshots.find(s => s.id === activeSnapshotId)?.name || defaultName) : defaultName,
         thumbnail: thumbnail,
         fullRenderedImage: canvas.toDataURL('image/png'), // New for HQ comparison
         backgroundImage: img.src,
@@ -2256,20 +2260,59 @@ function updateSnapshotsUI() {
         if (s.id === activeSnapshotId) item.classList.add('active');
         if (selectedSnapshotIds.includes(s.id)) item.classList.add('selected');
 
-        item.title = activeSnapshotId === s.id ? 'Currently Active' : 'Click to restore (or use checkbox for comparison)';
+        const displayName = s.name || `Snap ${snapshots.length - index}`;
+
         item.innerHTML = `
-            <div class="snapshot-name">Snap ${snapshots.length - index}</div>
-            <div class="snapshot-check-container">
-                <input type="checkbox" class="snapshot-checkbox" ${selectedSnapshotIds.includes(s.id) ? 'checked' : ''}>
+            <div class="snapshot-thumb-container">
+                <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
+                <div class="snapshot-check-container">
+                    <input type="checkbox" class="snapshot-checkbox" ${selectedSnapshotIds.includes(s.id) ? 'checked' : ''}>
+                </div>
+                <div class="snapshot-info">
+                    <span class="snapshot-time">${s.timestamp}</span>
+                    <button class="snapshot-delete-btn" title="Delete snapshot">&times;</button>
+                </div>
             </div>
-            <img src="${s.thumbnail}" class="snapshot-thumb" alt="Snapshot">
-            <div class="snapshot-info">
-                <span class="snapshot-time">${s.timestamp}</span>
-                <button class="snapshot-delete-btn" title="Delete snapshot">&times;</button>
-            </div>
+            <div class="snapshot-name" title="${displayName}">${displayName}</div>
         `;
 
-        item.addEventListener('click', (e) => {
+        // Handle Renaming
+        const nameEl = item.querySelector('.snapshot-name');
+        nameEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            const currentName = s.name || displayName;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'snapshot-name-input';
+            input.value = currentName;
+
+            nameEl.replaceWith(input);
+            input.focus();
+            input.select();
+
+            let isRenaming = true;
+            const finishRename = () => {
+                if (!isRenaming) return;
+                isRenaming = false;
+                const newName = input.value.trim() || currentName;
+                s.name = newName;
+                chrome.storage.local.set({ snapshots: snapshots }, () => {
+                    updateSnapshotsUI();
+                });
+            };
+
+            input.addEventListener('blur', finishRename);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') finishRename();
+                if (e.key === 'Escape') {
+                    isRenaming = false;
+                    updateSnapshotsUI();
+                }
+            });
+        });
+
+        // Click to restore (only if clicking the thumb container)
+        item.querySelector('.snapshot-thumb-container').addEventListener('click', (e) => {
             if (isComparisonSelectionMode) {
                 toggleSnapshotSelection(s.id);
             } else {
@@ -2288,7 +2331,10 @@ function updateSnapshotsUI() {
             toggleSnapshotSelection(s.id);
         });
 
-        item.querySelector('.snapshot-delete-btn').addEventListener('click', (e) => deleteSnapshot(s.id, e));
+        item.querySelector('.snapshot-delete-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteSnapshot(s.id, e);
+        });
 
         list.appendChild(item);
     });
