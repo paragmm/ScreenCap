@@ -2311,6 +2311,10 @@ function exitComparisonMode() {
         };
         img.src = preComparisonState.imgSrc;
 
+        if (preComparisonState.isCanvasVisible === false) {
+            canvas.style.display = 'none';
+        }
+
         // UI Updates
         comparisonBar.style.display = 'none';
         preComparisonState = null;
@@ -2338,18 +2342,47 @@ async function enterComparisonMode() {
     let sourceL = null; // Left source
     let sourceR = null; // Right source
 
+    const hasCurrent = canvas.style.display !== 'none' && img && img.src;
+
+    if (!hasCurrent && selectedSnapshotIds.length === 0) {
+        alert('Please select at least one snapshot to compare.');
+
+        // Reset button text
+        const span = compareBtn.querySelector('span');
+        if (span) span.innerText = 'Compare';
+
+        // Reset selection mode if we were just starting
+        if (selectedSnapshotIds.length === 0) {
+            isComparisonSelectionMode = false;
+            updateSnapshotsUI();
+        }
+        return;
+    }
+
     if (selectedSnapshotIds.length >= 2) {
         // Compare two selected snapshots (top two in selection)
         sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
         sourceR = snapshots.find(s => s.id === selectedSnapshotIds[1]);
     } else if (selectedSnapshotIds.length === 1) {
-        // Compare selected snapshot with current edit
+        // Compare selected snapshot...
         sourceL = snapshots.find(s => s.id === selectedSnapshotIds[0]);
-        sourceR = {
-            isCurrent: true,
-            width: canvas.width,
-            height: canvas.height
-        };
+
+        if (hasCurrent) {
+            // ...with current edit
+            sourceR = {
+                isCurrent: true,
+                width: canvas.width,
+                height: canvas.height
+            };
+        } else {
+            // ...with its own original background
+            sourceR = {
+                isSnapshotOriginal: true,
+                snapshot: sourceL,
+                width: sourceL.width,
+                height: sourceL.height
+            };
+        }
     } else {
         // Compare original background with current edit
         sourceL = { isOriginal: true, width: canvas.width, height: canvas.height };
@@ -2366,6 +2399,7 @@ async function enterComparisonMode() {
     }
 
     // Save current state before switching
+    canvas.style.display = 'block'; // Ensure canvas is visible for comparison
     preComparisonState = {
         width: canvas.width,
         height: canvas.height,
@@ -2373,7 +2407,8 @@ async function enterComparisonMode() {
         cropData: cropData ? JSON.parse(JSON.stringify(cropData)) : null,
         imgSrc: img.src,
         history: [...history],
-        historyIndex: historyIndex
+        historyIndex: historyIndex,
+        isCanvasVisible: hasCurrent // Remember if it was visible
     };
 
     const gap = 40;
@@ -2438,6 +2473,7 @@ async function enterComparisonMode() {
 
 function getLabel(source, fallback) {
     if (source.isOriginal) return 'Original';
+    if (source.isSnapshotOriginal) return 'Original (Snapshot)';
     if (source.isCurrent) return 'Current Edit';
     if (source.timestamp) return `Snapshot: ${source.timestamp}`;
     return fallback;
@@ -2459,6 +2495,18 @@ function renderToCtx(ctx, source, offsetX, offsetY) {
                 }
             }
             resolve();
+        } else if (source.isSnapshotOriginal) {
+            const sImg = new Image();
+            sImg.onload = () => {
+                const cData = source.snapshot.cropData;
+                if (cData) {
+                    ctx.drawImage(sImg, cData.x, cData.y, cData.w, cData.h, offsetX, offsetY, cData.w, cData.h);
+                } else {
+                    ctx.drawImage(sImg, offsetX, offsetY);
+                }
+                resolve();
+            };
+            sImg.src = source.snapshot.backgroundImage;
         } else {
             // A snapshot from storage
             const sImg = new Image();
