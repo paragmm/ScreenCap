@@ -109,8 +109,15 @@ document.querySelectorAll('.ribbon-content').forEach(content => {
 // Check if we are opening specifically for snapshots
 const isOpeningSnapshots = new URLSearchParams(window.location.search).get('tab') === 'snapshots';
 
-// Load image from storage
-chrome.storage.local.get(['capturedImage', 'cropData'], (result) => {
+// Load image and settings from storage
+chrome.storage.local.get(['capturedImage', 'cropData', 'comparisonLimit'], (result) => {
+    // Load Settings
+    if (result.comparisonLimit) {
+        comparisonLimit = parseInt(result.comparisonLimit);
+        const input = document.getElementById('comparison-limit');
+        if (input) input.value = comparisonLimit;
+    }
+
     if (result.capturedImage && !isOpeningSnapshots) {
         img.src = result.capturedImage;
         cropData = result.cropData;
@@ -2634,22 +2641,16 @@ function renderToCtx(ctx, source, offsetX, offsetY) {
 }
 
 // Settings
-const canvasBgColorInput = document.getElementById('canvas-bg-color');
-if (canvasBgColorInput) {
-    canvasBgColorInput.addEventListener('input', (e) => {
-        canvas.style.backgroundColor = e.target.value;
-    });
-}
-
 let comparisonLimit = 2;
 const comparisonLimitInput = document.getElementById('comparison-limit');
 if (comparisonLimitInput) {
     comparisonLimitInput.addEventListener('input', (e) => {
         let val = parseInt(e.target.value);
-        if (val < 2) val = 2;
+        if (isNaN(val) || val < 2) val = 2;
         if (val > 5) val = 5;
         comparisonLimit = val;
         comparisonLimitInput.value = val;
+        chrome.storage.local.set({ comparisonLimit: val });
     });
 }
 
@@ -2657,15 +2658,12 @@ const resetSettingsBtn = document.getElementById('reset-settings-btn');
 if (resetSettingsBtn) {
     resetSettingsBtn.addEventListener('click', () => {
         if (confirm('Reset all editor settings to default?')) {
-            // Reset Canvas BG
-            if (canvasBgColorInput) {
-                canvasBgColorInput.value = '#ffffff';
-                canvas.style.backgroundColor = '#ffffff';
-            }
-
             // Reset Comparison Limit
             comparisonLimit = 2;
-            if (comparisonLimitInput) comparisonLimitInput.value = 2;
+            if (comparisonLimitInput) {
+                comparisonLimitInput.value = 2;
+                chrome.storage.local.set({ comparisonLimit: 2 });
+            }
 
             // Reset Stroke Color
             currentColor = '#6366f1';
