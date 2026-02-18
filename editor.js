@@ -2502,8 +2502,18 @@ async function enterComparisonMode() {
 
 function getLabel(source, fallback) {
     if (source.isOriginal) return 'Original';
-    if (source.isSnapshotOriginal) return 'Original (Snapshot)';
+    if (source.isSnapshotOriginal) {
+        const snapIndex = snapshots.findIndex(s => s.id === source.snapshot.id);
+        if (snapIndex !== -1) return `Original (Snap ${snapshots.length - snapIndex})`;
+        return 'Original (Snapshot)';
+    }
     if (source.isCurrent) return 'Current Edit';
+
+    const snapIndex = snapshots.findIndex(s => s.id === source.id);
+    if (snapIndex !== -1) {
+        return `Snap ${snapshots.length - snapIndex}`;
+    }
+
     if (source.timestamp) return `Snapshot: ${source.timestamp}`;
     return fallback;
 }
