@@ -1872,10 +1872,19 @@ document.querySelectorAll('.share-btn-trigger').forEach(btn => {
 
             const isActive = dropdown.classList.toggle('active');
             if (isActive) {
+                // Clear selection and reset tool to keep the ribbon clean
+                selectedShape = null;
+                selectedShapes = [];
+                currentTool = 'select';
+                redraw();
+                updateUIForSelection(null);
+                updateLayersList();
+
                 const rect = btn.getBoundingClientRect();
                 dropdown.style.top = `${rect.bottom + 8}px`;
-                // Align right edge of dropdown with right edge of button
-                dropdown.style.left = `${rect.right - 160}px`;
+                // Calculate position after showing to get accurate width
+                const dropdownWidth = dropdown.offsetWidth || 160;
+                dropdown.style.left = `${rect.right - dropdownWidth}px`;
 
                 // Ensure it doesn't go off-screen to the left
                 if (parseFloat(dropdown.style.left) < 10) {
@@ -1889,6 +1898,34 @@ document.querySelectorAll('.share-btn-trigger').forEach(btn => {
 const closeShareDropdowns = () => {
     document.querySelectorAll('.share-dropdown').forEach(d => d.classList.remove('active'));
 };
+
+function showToast(message, type = 'info') {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 300);
+    }, 4500);
+}
+
 
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.share-wrapper')) {
@@ -1913,6 +1950,7 @@ async function shareSnapshot(provider) {
     const tempSelectedShapes = [...selectedShapes];
     selectedShape = null;
     selectedShapes = [];
+    currentTool = 'select'; // Reset tool to select as well
     redraw();
     updateUIForSelection(null);
     updateLayersList();
@@ -1927,7 +1965,7 @@ async function shareSnapshot(provider) {
     updateLayersList();
 
     if (!canvasBlob) {
-        alert('Failed to generate sharing image.');
+        showToast('Failed to generate sharing image.', 'error');
         return;
     }
 
@@ -1947,23 +1985,23 @@ async function shareSnapshot(provider) {
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
                     console.error('System share failed:', err);
-                    alert('System share failed or was cancelled.');
+                    showToast('System share failed.', 'error');
                 }
                 return;
             }
         } else {
-            alert('System share (files) is not supported by your browser.');
+            showToast('System share not supported.', 'info');
             return;
         }
     }
 
-    // 2. Fallbacks for specific providers
+    // 2. Fallbacks for specific providers (WhatsApp, Telegram, Email)
     const text = encodeURIComponent('Check out this snapshot I took with ScreenCap!');
     let url = '';
 
     switch (provider) {
         case 'email':
-            url = `mailto:?subject=ScreenCap Snapshot&body=${text}%0A%0A(Note: Please paste the image from your clipboard if it was copied.)`;
+            url = `mailto:?subject=ScreenCap Snapshot&body=${text}`;
             break;
         case 'whatsapp':
             url = `https://wa.me/?text=${text}`;
@@ -1974,16 +2012,21 @@ async function shareSnapshot(provider) {
     }
 
     if (url) {
-        // Since we can't attach files to these URLs, we also copy to clipboard for convenience
-        copyToClipboard();
-        window.open(url, '_blank');
+        // Copy to clipboard using the blob we already have
+        try {
+            const clipboardData = [new ClipboardItem({ 'image/png': canvasBlob })];
+            await navigator.clipboard.write(clipboardData);
 
-        // Show a small notification or help message
-        const helpMsg = provider === 'email' ? 'Opening Email client. Image has been copied to your clipboard - you can paste it into the email.' :
-            `Opening ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Image has been copied to your clipboard for you to paste.`;
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            showToast(`Image Copied! Open ${providerName} and press Ctrl+V to attach.`, 'success');
+        } catch (err) {
+            console.error('Clipboard copy failed:', err);
+        }
 
-        // Simple alert for now, could be a toast
-        console.log(helpMsg);
+        // Brief delay before opening window to ensure toast is visible
+        setTimeout(() => {
+            window.open(url, '_blank');
+        }, 800);
     }
 }
 
