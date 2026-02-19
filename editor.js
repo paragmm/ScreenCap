@@ -1798,6 +1798,7 @@ document.querySelectorAll('[id="save-btn"]').forEach(btn => {
         const tempSelectedShapes = [...selectedShapes];
         selectedShape = null;
         selectedShapes = [];
+        currentTool = 'select';
         redraw();
         updateUIForSelection(null);
         updateLayersList();
@@ -1807,13 +1808,6 @@ document.querySelectorAll('[id="save-btn"]').forEach(btn => {
         link.download = 'screencap-' + Date.now() + '.png';
         link.href = dataURL;
         link.click();
-
-        // Restore selection
-        selectedShape = tempSelectedShape;
-        selectedShapes = tempSelectedShapes;
-        redraw();
-        updateUIForSelection(selectedShape);
-        updateLayersList();
     });
 });
 
@@ -1823,6 +1817,7 @@ async function copyToClipboard() {
     const tempSelectedShapes = [...selectedShapes];
     selectedShape = null;
     selectedShapes = [];
+    currentTool = 'select';
     redraw();
     updateUIForSelection(null);
     updateLayersList();
@@ -1847,12 +1842,9 @@ async function copyToClipboard() {
             console.error('Failed to copy: ', err);
             alert('Failed to copy image to clipboard.');
         } finally {
-            // Restore selection
-            selectedShape = tempSelectedShape;
-            selectedShapes = tempSelectedShapes;
+            // redraw just once at the end if needed, 
+            // but the tool is already reset and UI hidden
             redraw();
-            updateUIForSelection(selectedShape);
-            updateLayersList();
         }
     }, 'image/png');
 }
