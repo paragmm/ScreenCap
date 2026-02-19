@@ -320,9 +320,10 @@ function updateUIForSelection(shape) {
         if (textGroup) textGroup.style.display = (shape.type === 'text' || shape.type === 'textarea') ? 'flex' : 'none';
         if (blurGroup) blurGroup.style.display = (shape.type === 'blur') ? 'flex' : 'none';
 
-        const hideAppearanceAndSize = ['blur', 'text', 'textarea'].includes(shape.type);
-        if (appearanceGroup) appearanceGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
-        if (sizeGroup) sizeGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
+        const hideAppearance = ['blur'].includes(shape.type);
+        const hideSize = ['blur', 'text', 'textarea'].includes(shape.type);
+        if (appearanceGroup) appearanceGroup.style.display = hideAppearance ? 'none' : 'flex';
+        if (sizeGroup) sizeGroup.style.display = hideSize ? 'none' : 'flex';
 
         // Update Fill visibility on Home tab
         const fillGroup = document.getElementById('fill-control-group');
@@ -355,9 +356,10 @@ function updateUIForSelection(shape) {
         if (textGroup) textGroup.style.display = (currentTool === 'text' || currentTool === 'textarea') ? 'flex' : 'none';
         if (blurGroup) blurGroup.style.display = (currentTool === 'blur') ? 'flex' : 'none';
 
-        const hideAppearanceAndSize = ['blur', 'text', 'textarea', 'select'].includes(currentTool);
-        if (appearanceGroup) appearanceGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
-        if (sizeGroup) sizeGroup.style.display = hideAppearanceAndSize ? 'none' : 'flex';
+        const hideAppearance = ['blur', 'select'].includes(currentTool);
+        const hideSize = ['blur', 'text', 'textarea', 'select'].includes(currentTool);
+        if (appearanceGroup) appearanceGroup.style.display = hideAppearance ? 'none' : 'flex';
+        if (sizeGroup) sizeGroup.style.display = hideSize ? 'none' : 'flex';
 
         const fillGroup = document.getElementById('fill-control-group');
         if (fillGroup) {
