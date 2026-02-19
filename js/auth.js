@@ -1,8 +1,4 @@
-
-/**
- * Authentication and encryption logic for ScreenCap Premium
- */
-const Auth = (() => {
+export const Auth = (() => {
     const DEFAULT_USER = 'admin';
     const DEFAULT_PASS = 'pass123#';
     const STORAGE_KEY = 'screencap_auth_token';
@@ -117,5 +113,3 @@ const Auth = (() => {
         }
     };
 })();
-
-window.Auth = Auth;

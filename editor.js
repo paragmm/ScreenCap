@@ -4,6 +4,11 @@ import { drawShape as drawShapeInternal, resizeRect, resizeOval, resizeLine } fr
 import { drawText, drawTextArea, resizeText } from './js/tools/text.js';
 import { drawCropOverlay as drawCropOverlayInternal, getCropHandles } from './js/tools/crop.js';
 import { drawSelectionHighlight as drawSelectionHighlightInternal, getResizeHandles } from './js/tools/select.js';
+import { Premium } from './js/premium.js';
+
+// Initialize Premium logic
+Premium.init();
+
 
 const canvas = document.getElementById('editor-canvas');
 const ctx = canvas.getContext('2d');
@@ -299,6 +304,8 @@ function redraw() {
         drawCropOverlayInternal(ctx, cropSelection, canvas.width, canvas.height);
     }
 }
+window.redrawCanvas = redraw;
+
 
 function updateUIForSelection(shape) {
     if (shape) {
@@ -2952,132 +2959,4 @@ if (resetSettingsBtn) {
     });
 }
 
-/**
- * PREMIUM FEATURE HANDLING
- */
-const premiumTools = [
-    'tool-pen-ribbon', 'tool-eraser-ribbon', 'tool-clear-ribbon', 'tool-crop-ribbon',
-    'tool-line-ribbon', 'tool-arrow-ribbon', 'tool-rect-ribbon', 'tool-circle-ribbon',
-    'tool-polygon-ribbon', 'tool-text-ribbon', 'tool-textarea-ribbon', 'tool-blur-ribbon',
-    'btn-undo-ribbon', 'btn-redo-ribbon'
-];
 
-const loginModal = document.getElementById('login-modal');
-const closeLoginBtn = document.getElementById('close-login');
-const submitLoginBtn = document.getElementById('submit-login');
-const loginErrorEl = document.getElementById('login-error');
-const usernameInput = document.getElementById('login-username');
-const passwordInput = document.getElementById('login-password');
-
-let pendingAction = null;
-
-async function checkPremium(toolId, element) {
-    if (premiumTools.includes(toolId)) {
-        const loggedIn = await Auth.isLoggedIn();
-        if (!loggedIn) {
-            showLoginModal(() => {
-                // Action to perform after successful login
-                if (element) element.click();
-            });
-            return false;
-        }
-    }
-    return true;
-}
-
-function showLoginModal(onSuccess) {
-    pendingAction = onSuccess;
-    loginModal.style.display = 'flex';
-    loginErrorEl.style.display = 'none';
-    usernameInput.value = '';
-    passwordInput.value = '';
-    usernameInput.focus();
-}
-
-closeLoginBtn.addEventListener('click', () => {
-    loginModal.style.display = 'none';
-    pendingAction = null;
-});
-
-submitLoginBtn.addEventListener('click', async () => {
-    const username = usernameInput.value;
-    const password = passwordInput.value;
-
-    const success = await Auth.login(username, password);
-    if (success) {
-        loginModal.style.display = 'none';
-        if (pendingAction) pendingAction();
-        pendingAction = null;
-        updatePremiumUI();
-    } else {
-        loginErrorEl.style.display = 'block';
-        loginErrorEl.innerText = 'Invalid username or password';
-    }
-});
-
-// Close modal on outside click
-loginModal.addEventListener('click', (e) => {
-    if (e.target === loginModal) {
-        loginModal.style.display = 'none';
-        pendingAction = null;
-    }
-});
-
-// Visual indicator for premium tools
-function updatePremiumUI() {
-    Auth.isLoggedIn().then(loggedIn => {
-        premiumTools.forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                if (loggedIn) {
-                    btn.classList.remove('premium-locked');
-                } else {
-                    btn.classList.add('premium-locked');
-                }
-            }
-        });
-
-        // Update status badge
-        const statusBadge = document.getElementById('status-badge');
-        if (statusBadge) {
-            if (loggedIn) {
-                statusBadge.innerText = 'Premium Member';
-                statusBadge.className = 'status-badge premium';
-            } else {
-                statusBadge.innerText = 'Free Plan';
-                statusBadge.className = 'status-badge free';
-            }
-        }
-
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.style.display = loggedIn ? 'block' : 'none';
-        }
-    });
-}
-
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-        await Auth.logout();
-        updatePremiumUI();
-        redraw(); // Redraw to remove premium tools if any were active
-    });
-}
-
-// Intercept all ribbon button clicks for premium check
-document.addEventListener('click', async (e) => {
-    const ribbonBtn = e.target.closest('.ribbon-btn');
-    if (ribbonBtn && premiumTools.includes(ribbonBtn.id)) {
-        const loggedIn = await Auth.isLoggedIn();
-        if (!loggedIn) {
-            e.stopPropagation();
-            e.preventDefault();
-            showLoginModal(() => {
-                ribbonBtn.click();
-            });
-        }
-    }
-}, true); // Use capture phase to intercept before original listeners
-
-updatePremiumUI();
