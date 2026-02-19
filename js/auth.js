@@ -1,7 +1,7 @@
 export const Auth = (() => {
     const DEFAULT_USER = 'admin';
     const DEFAULT_PASS = 'pass123#';
-    const STORAGE_KEY = 'screencap_auth_token';
+    const STORAGE_KEY = 'auth_token';
 
     /**
      * Generates a unique browser signature based on browser and hardware properties.
