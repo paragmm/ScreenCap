@@ -262,6 +262,71 @@ function updateHistoryButtons() {
     }
 }
 
+function drawWatermark(ctx, width, height) {
+    const text = "Capture by ScreenCap Free";
+    ctx.save();
+
+    // Modern font
+    ctx.font = "600 13px 'Inter', sans-serif";
+    const metrics = ctx.measureText(text);
+    const textWidth = metrics.width;
+    const textHeight = 13;
+
+    const padding = 20;
+    const bgPaddingX = 14;
+    const bgPaddingY = 10;
+
+    const bgW = textWidth + (bgPaddingX * 2) + 15; // Extra space for star
+    const bgH = textHeight + (bgPaddingY * 2);
+
+    // Bottom Left position
+    const bgX = padding;
+    const bgY = height - padding - bgH;
+
+    // Draw glassmorphism-style background
+    ctx.fillStyle = "rgba(30, 41, 59, 0.85)";
+    ctx.beginPath();
+    const radius = 8;
+
+    ctx.moveTo(bgX + radius, bgY);
+    ctx.lineTo(bgX + bgW - radius, bgY);
+    ctx.quadraticCurveTo(bgX + bgW, bgY, bgX + bgW, bgY + radius);
+    ctx.lineTo(bgX + bgW, bgY + bgH - radius);
+    ctx.quadraticCurveTo(bgX + bgW, bgY + bgH, bgX + bgW - radius, bgY + bgH);
+    ctx.lineTo(bgX + radius, bgY + bgH);
+    ctx.quadraticCurveTo(bgX, bgY + bgH, bgX, bgY + bgH - radius);
+    ctx.lineTo(bgX, bgY + radius);
+    ctx.quadraticCurveTo(bgX, bgY, bgX + radius, bgY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Setup text drawing
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = "#ffffff";
+
+    // Draw text
+    const textX = bgX + bgPaddingX;
+    const textY = bgY + (bgH / 2);
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(text, textX, textY);
+
+    // Add a small gold star 
+    ctx.shadowBlur = 0;
+    ctx.font = "14px sans-serif";
+    ctx.fillStyle = "#fbbf24";
+    ctx.fillText("★", textX + textWidth + 8, textY);
+
+    ctx.restore();
+}
+
 function redraw() {
     // Update button states based on editor visibility
     const isVisible = canvas.style.display !== 'none';
@@ -303,7 +368,13 @@ function redraw() {
     if (currentTool === 'crop' && cropSelection) {
         drawCropOverlayInternal(ctx, cropSelection, canvas.width, canvas.height);
     }
+
+    // Draw watermark for free users
+    if (!Premium.isLoggedIn) {
+        drawWatermark(ctx, canvas.width, canvas.height);
+    }
 }
+
 window.redrawCanvas = redraw;
 
 

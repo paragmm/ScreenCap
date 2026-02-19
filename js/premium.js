@@ -8,7 +8,7 @@ export const Premium = (() => {
         'tool-pen-ribbon', 'tool-eraser-ribbon', 'tool-clear-ribbon', 'tool-crop-ribbon',
         'tool-line-ribbon', 'tool-arrow-ribbon', 'tool-rect-ribbon', 'tool-circle-ribbon',
         'tool-polygon-ribbon', 'tool-text-ribbon', 'tool-textarea-ribbon', 'tool-blur-ribbon',
-        'btn-undo-ribbon', 'btn-redo-ribbon', 'compare-btn'
+        'btn-undo-ribbon', 'btn-redo-ribbon', 'compare-btn', 'take-snapshot-btn', 'clear-snapshots-btn'
     ];
 
     let elements = {};
