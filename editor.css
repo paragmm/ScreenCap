@@ -211,6 +211,96 @@ body {
   color: #b91c1c;
 }
 
+/* Share Dropdown Styles */
+.share-wrapper {
+  display: flex;
+}
+
+.share-dropdown {
+  position: fixed;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  display: none;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 9999;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.share-dropdown.active {
+  display: flex;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.share-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s;
+  border-radius: var(--radius-sm);
+}
+
+.share-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.share-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-item#share-whatsapp:hover svg {
+  color: #25D366;
+}
+
+.share-item#share-telegram:hover svg {
+  color: #0088cc;
+}
+
+.share-item#share-email:hover svg {
+  color: #ea4335;
+}
+
+.share-item.highlight {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.share-item.highlight:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.share-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 4px 0;
+}
+
 /* Action Controls (Mini Versions for Ribbon) */
 .ribbon-control-row {
   display: flex;

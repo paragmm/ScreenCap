@@ -1859,6 +1859,139 @@ async function copyToClipboard() {
 
 document.getElementById('copy-clipboard-btn').addEventListener('click', copyToClipboard);
 
+// --- Share Logic ---
+document.querySelectorAll('.share-btn-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = btn.nextElementSibling;
+        if (dropdown) {
+            // Close all other dropdowns
+            document.querySelectorAll('.share-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.remove('active');
+            });
+
+            const isActive = dropdown.classList.toggle('active');
+            if (isActive) {
+                const rect = btn.getBoundingClientRect();
+                dropdown.style.top = `${rect.bottom + 8}px`;
+                // Align right edge of dropdown with right edge of button
+                dropdown.style.left = `${rect.right - 160}px`;
+
+                // Ensure it doesn't go off-screen to the left
+                if (parseFloat(dropdown.style.left) < 10) {
+                    dropdown.style.left = '10px';
+                }
+            }
+        }
+    });
+});
+
+const closeShareDropdowns = () => {
+    document.querySelectorAll('.share-dropdown').forEach(d => d.classList.remove('active'));
+};
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.share-wrapper')) {
+        closeShareDropdowns();
+    }
+});
+
+// Close on ribbon scroll to prevent fixed dropdown from floating away
+document.querySelectorAll('.ribbon-content').forEach(el => {
+    el.addEventListener('scroll', closeShareDropdowns);
+});
+
+window.addEventListener('resize', closeShareDropdowns);
+window.addEventListener('scroll', closeShareDropdowns);
+
+async function shareSnapshot(provider) {
+    // Hide dropdown
+    document.querySelectorAll('.share-dropdown').forEach(d => d.classList.remove('active'));
+
+    // Deselect to avoid handles
+    const tempSelectedShape = selectedShape;
+    const tempSelectedShapes = [...selectedShapes];
+    selectedShape = null;
+    selectedShapes = [];
+    redraw();
+    updateUIForSelection(null);
+    updateLayersList();
+
+    const canvasBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+    // Restore selection
+    selectedShape = tempSelectedShape;
+    selectedShapes = tempSelectedShapes;
+    redraw();
+    updateUIForSelection(selectedShape);
+    updateLayersList();
+
+    if (!canvasBlob) {
+        alert('Failed to generate sharing image.');
+        return;
+    }
+
+    const file = new File([canvasBlob], `screencap-${Date.now()}.png`, { type: 'image/png' });
+    const shareData = {
+        title: 'ScreenCap Snapshot',
+        text: 'Check out this snapshot I took with ScreenCap Editor!',
+        files: [file]
+    };
+
+    // 1. Use System Share ONLY if provider is 'system'
+    if (provider === 'system') {
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+                    console.error('System share failed:', err);
+                    alert('System share failed or was cancelled.');
+                }
+                return;
+            }
+        } else {
+            alert('System share (files) is not supported by your browser.');
+            return;
+        }
+    }
+
+    // 2. Fallbacks for specific providers
+    const text = encodeURIComponent('Check out this snapshot I took with ScreenCap!');
+    let url = '';
+
+    switch (provider) {
+        case 'email':
+            url = `mailto:?subject=ScreenCap Snapshot&body=${text}%0A%0A(Note: Please paste the image from your clipboard if it was copied.)`;
+            break;
+        case 'whatsapp':
+            url = `https://wa.me/?text=${text}`;
+            break;
+        case 'telegram':
+            url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${text}`;
+            break;
+    }
+
+    if (url) {
+        // Since we can't attach files to these URLs, we also copy to clipboard for convenience
+        copyToClipboard();
+        window.open(url, '_blank');
+
+        // Show a small notification or help message
+        const helpMsg = provider === 'email' ? 'Opening Email client. Image has been copied to your clipboard - you can paste it into the email.' :
+            `Opening ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Image has been copied to your clipboard for you to paste.`;
+
+        // Simple alert for now, could be a toast
+        console.log(helpMsg);
+    }
+}
+
+document.querySelectorAll('.share-email').forEach(el => el.addEventListener('click', () => shareSnapshot('email')));
+document.querySelectorAll('.share-whatsapp').forEach(el => el.addEventListener('click', () => shareSnapshot('whatsapp')));
+document.querySelectorAll('.share-telegram').forEach(el => el.addEventListener('click', () => shareSnapshot('telegram')));
+document.querySelectorAll('.share-system').forEach(el => el.addEventListener('click', () => shareSnapshot('system')));
+
 document.getElementById('discard-btn').addEventListener('click', () => {
     if (confirm('Discard this screenshot?')) {
         window.close();
