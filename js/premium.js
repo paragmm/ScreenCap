@@ -8,7 +8,8 @@ export const Premium = (() => {
         'tool-pen-ribbon', 'tool-eraser-ribbon', 'tool-clear-ribbon', 'tool-crop-ribbon',
         'tool-line-ribbon', 'tool-arrow-ribbon', 'tool-rect-ribbon', 'tool-circle-ribbon',
         'tool-polygon-ribbon', 'tool-text-ribbon', 'tool-textarea-ribbon', 'tool-blur-ribbon',
-        'btn-undo-ribbon', 'btn-redo-ribbon', 'compare-btn', 'take-snapshot-btn', 'clear-snapshots-btn'
+        'btn-undo-ribbon', 'btn-redo-ribbon', 'compare-btn', 'take-snapshot-btn', 'clear-snapshots-btn',
+        'tool-select-ribbon', 'appearance-ribbon-group', 'size-ribbon-group'
     ];
 
     let elements = {};
@@ -113,8 +114,9 @@ export const Premium = (() => {
 
         // Intercept premium clicks - MUST BE SYNCHRONOUS to block other listeners
         document.addEventListener('click', (e) => {
-            const ribbonBtn = e.target.closest('.ribbon-btn');
-            if (ribbonBtn && premiumToolsList.includes(ribbonBtn.id)) {
+            // Check for both buttons and groups
+            const target = e.target.closest('.ribbon-btn, .ribbon-group');
+            if (target && premiumToolsList.includes(target.id)) {
                 if (!isUserLoggedIn) {
                     // Completely block the event
                     e.preventDefault();
@@ -122,8 +124,10 @@ export const Premium = (() => {
                     e.stopImmediatePropagation();
 
                     showLoginModal(() => {
-                        // After login, re-trigger the click
-                        ribbonBtn.click();
+                        // After login, re-trigger the click if it was a button
+                        if (target.classList.contains('ribbon-btn')) {
+                            target.click();
+                        }
                     });
                 }
             }
