@@ -56,7 +56,8 @@ export const Auth = (() => {
                 const tokenData = {
                     user: username,
                     timestamp: Date.now(),
-                    expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+                    expiry: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
+                    signature: getBrowserSignature()
                 };
 
                 const salt = Math.random().toString(36).substring(7);
@@ -79,26 +80,40 @@ export const Auth = (() => {
             return new Promise((resolve) => {
                 chrome.storage.local.get([STORAGE_KEY], (res) => {
                     const storageObject = res[STORAGE_KEY];
-                    if (!storageObject || !storageObject.s || !storageObject.d) {
+                    if (!storageObject) {
                         resolve(false);
                         return;
+                    }
+
+                    const invalidate = () => {
+                        chrome.storage.local.remove([STORAGE_KEY], () => {
+                            resolve(false);
+                        });
+                    };
+
+                    if (!storageObject.s || !storageObject.d) {
+                        return invalidate();
                     }
 
                     const decryptedStr = decrypt(storageObject.d, storageObject.s);
                     if (!decryptedStr) {
-                        resolve(false);
-                        return;
+                        return invalidate();
                     }
 
                     try {
                         const tokenData = JSON.parse(decryptedStr);
-                        if (tokenData && tokenData.user === DEFAULT_USER && tokenData.expiry > Date.now()) {
+                        const currentSignature = getBrowserSignature();
+
+                        if (tokenData &&
+                            tokenData.user === DEFAULT_USER &&
+                            tokenData.expiry > Date.now() &&
+                            tokenData.signature === currentSignature) {
                             resolve(true);
                         } else {
-                            resolve(false);
+                            invalidate();
                         }
                     } catch (e) {
-                        resolve(false);
+                        invalidate();
                     }
                 });
             });
